@@ -8,6 +8,7 @@ import type {
 import { debugFetch } from '$lib/debug';
 
 const API_BASE = 'https://api.ynab.com/v1';
+export const DEFAULT_BUDGET_ID = 'default';
 
 export type YnabErrorCode =
   | 'reconnect-required'

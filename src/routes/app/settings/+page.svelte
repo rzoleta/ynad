@@ -10,15 +10,14 @@
     writeSettings,
     type WeekStart
   } from '$lib/app/settings';
-  import { clearYnabConnection, readSelectedBudgetId, readToken } from '$lib/ynab/auth';
+  import { clearYnabConnection, readToken } from '$lib/ynab/auth';
+  import { DEFAULT_BUDGET_ID } from '$lib/ynab/client';
 
   let tokenPresent = $state(false);
-  let budgetId = $state<string | null>(null);
   let weekStart = $state<WeekStart>(7);
 
   onMount(() => {
     tokenPresent = Boolean(readToken());
-    budgetId = readSelectedBudgetId();
     weekStart = getEffectiveWeekStart();
   });
 
@@ -91,7 +90,9 @@
       <p class="mt-1 text-sm text-muted-foreground">
         {tokenPresent ? 'YNAB is connected in this browser.' : 'YNAB is not connected.'}
       </p>
-      <p class="mt-2 text-xs text-muted-foreground">Selected budget: {budgetId ?? 'None'}</p>
+      <p class="mt-2 text-xs text-muted-foreground">
+        Selected budget: {tokenPresent ? DEFAULT_BUDGET_ID : 'None'}
+      </p>
       <button class="button danger mt-4" onclick={disconnect}>
         <Unplug size={16} />
         Disconnect YNAB

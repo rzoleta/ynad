@@ -24,13 +24,8 @@
   import { computeChart, type ChartResult } from '$lib/charts/compute';
   import { debugFetch } from '$lib/debug';
   import { cn, formatDateTime, formatMilliunits } from '$lib/utils';
-  import { fetchBudgetSnapshot, fetchBudgets } from '$lib/ynab/client';
-  import {
-    readSelectedBudgetId,
-    readToken,
-    startYnabOAuth,
-    writeSelectedBudgetId
-  } from '$lib/ynab/auth';
+  import { DEFAULT_BUDGET_ID, fetchBudgetSnapshot } from '$lib/ynab/client';
+  import { readToken, startYnabOAuth } from '$lib/ynab/auth';
   import type { YnabBudgetSnapshot } from '$lib/ynab/types';
 
   let token = $state<string | null>(null);
@@ -41,16 +36,6 @@
   let editingChart = $state<ChartConfig | null>(null);
   let lastUpdated = $state<Date | null>(null);
   let draggedIndex = $state<number | null>(null);
-
-  const budgetsQuery = createQuery(() => ({
-    queryKey: ['ynab', 'budgets', token],
-    queryFn: async () => {
-      debugFetch('query:budgets:fn', { hasToken: Boolean(token) });
-      if (!token) return [];
-      return fetchBudgets(token);
-    },
-    enabled: Boolean(token)
-  }));
 
   const snapshotQuery = createQuery<YnabBudgetSnapshot | null>(() => ({
     queryKey: ['ynab', 'snapshot', token, budgetId],
@@ -70,7 +55,7 @@
   onMount(() => {
     const storedToken = readToken();
     token = storedToken?.accessToken ?? null;
-    budgetId = readSelectedBudgetId();
+    budgetId = token ? DEFAULT_BUDGET_ID : null;
     charts = readDashboard(budgetId).charts;
     debugFetch('app:on-mount', {
       hasToken: Boolean(token),
@@ -78,29 +63,6 @@
       budgetId,
       charts: charts.length
     });
-  });
-
-  $effect(() => {
-    const budgets = budgetsQuery.data;
-    debugFetch('state:budgets-query', {
-      hasToken: Boolean(token),
-      status: budgetsQuery.status,
-      fetchStatus: budgetsQuery.fetchStatus,
-      hasError: Boolean(budgetsQuery.error),
-      error: budgetsQuery.error instanceof Error ? budgetsQuery.error.message : null,
-      budgetCount: budgets?.length ?? null,
-      currentBudgetId: budgetId
-    });
-    if (!budgetId && budgets?.[0]) {
-      const nextBudgetId = budgets[0].id;
-      budgetId = nextBudgetId;
-      writeSelectedBudgetId(nextBudgetId);
-      charts = readDashboard(nextBudgetId).charts;
-      debugFetch('state:auto-selected-budget', {
-        budgetId: nextBudgetId,
-        charts: charts.length
-      });
-    }
   });
 
   $effect(() => {
@@ -168,7 +130,7 @@
 
   async function refresh() {
     debugFetch('action:manual-refresh', { hasToken: Boolean(token), budgetId });
-    await Promise.all([budgetsQuery.refetch(), snapshotQuery.refetch()]);
+    await snapshotQuery.refetch();
   }
 
   function resultFor(chart: ChartConfig): ChartResult {
