@@ -1,31 +1,31 @@
 import { dashboardSchema, type ChartConfig, type DashboardConfig } from './chart-config';
 
 function storageKey(budgetId: string) {
-	return `ynad.dashboard.${budgetId}`;
+  return `ynad.dashboard.${budgetId}`;
 }
 
 export function readDashboard(budgetId: string | null): DashboardConfig {
-	if (!budgetId || typeof localStorage === 'undefined') return { charts: [] };
+  if (!budgetId || typeof localStorage === 'undefined') return { charts: [] };
 
-	const raw = localStorage.getItem(storageKey(budgetId));
-	if (!raw) return { charts: [] };
+  const raw = localStorage.getItem(storageKey(budgetId));
+  if (!raw) return { charts: [] };
 
-	try {
-		const parsed = dashboardSchema.safeParse(JSON.parse(raw));
-		return parsed.success ? parsed.data : { charts: [] };
-	} catch {
-		return { charts: [] };
-	}
+  try {
+    const parsed = dashboardSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : { charts: [] };
+  } catch {
+    return { charts: [] };
+  }
 }
 
 export function writeDashboard(budgetId: string, dashboard: DashboardConfig) {
-	localStorage.setItem(storageKey(budgetId), JSON.stringify(dashboard));
+  localStorage.setItem(storageKey(budgetId), JSON.stringify(dashboard));
 }
 
 export function reorderCharts(charts: ChartConfig[], from: number, to: number) {
-	const next = [...charts];
-	const [item] = next.splice(from, 1);
-	if (!item) return charts;
-	next.splice(to, 0, item);
-	return next;
+  const next = [...charts];
+  const [item] = next.splice(from, 1);
+  if (!item) return charts;
+  next.splice(to, 0, item);
+  return next;
 }
