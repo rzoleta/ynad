@@ -78,7 +78,9 @@ export async function ynabFetch<T>(token: string, path: string): Promise<T> {
     throw new YnabClientError('fetch-error', `YNAB request failed (${response.status}).`);
   }
 
-  return (await response.json()) as T;
+  const body = (await response.json()) as T;
+  debugFetch('request:success-body', { path, body });
+  return body;
 }
 
 export async function fetchBudgets(token: string) {
