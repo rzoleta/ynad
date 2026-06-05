@@ -279,7 +279,7 @@
       onclick={() => (editorOpen = false)}
     ></button>
     <aside
-      class="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col border-l border-border bg-card shadow-2xl"
+      class="fixed inset-y-0 right-0 z-50 flex w-full max-w-5xl flex-col border-l border-border bg-card shadow-2xl"
     >
       <div class="border-b border-border p-5">
         <h2 class="text-xl font-semibold">
@@ -289,74 +289,81 @@
           Grouped form with live preview from current data.
         </p>
       </div>
-      <div class="flex-1 space-y-5 overflow-y-auto p-5">
-        <label class="field">
-          <span>Title</span>
-          <input
-            bind:value={editingChart.title}
-            oninput={() => (editingChart!.titleEdited = true)}
-          />
-        </label>
-        <label class="field">
-          <span>Type</span>
-          <select bind:value={editingChart.type}>
-            <option value="balance">Balance</option>
-            <option value="spending">Spending</option>
-            <option value="income">Income</option>
-            <option value="number">Number</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Size</span>
-          <select bind:value={editingChart.size}>
-            <option value="small">Small</option>
-            <option value="medium">Medium</option>
-            <option value="large">Large</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Date range</span>
-          <select bind:value={editingChart.dateRange.preset}>
-            <option value="this-month">This Month</option>
-            <option value="this-year">This Year</option>
-            <option value="last-month">Last Month</option>
-            <option value="last-year">Last Year</option>
-            <option value="last-12-months">Last 12 Months</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Visualization</span>
-          <select bind:value={editingChart.visualization} disabled={editingChart.type === 'number'}>
-            <option value="line">Line</option>
-            <option value="bar">Bar</option>
-            <option value="pie">Pie</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Granularity</span>
-          <select
-            bind:value={editingChart.granularity}
-            disabled={editingChart.type === 'number' || editingChart.visualization === 'pie'}
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Categories</span>
-          <select disabled={editingChart.type !== 'spending'}>
-            <option>All categories</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Payees</span>
-          <select disabled={editingChart.type !== 'spending' && editingChart.type !== 'income'}>
-            <option>All payees from loaded transactions</option>
-          </select>
-        </label>
-        <div class="rounded-lg border border-border bg-background p-4">
+      <div
+        class="grid flex-1 gap-5 overflow-y-auto p-5 lg:grid-cols-[minmax(320px,1fr)_minmax(280px,0.9fr)] lg:items-start"
+      >
+        <div class="space-y-5">
+          <label class="field">
+            <span>Title</span>
+            <input
+              bind:value={editingChart.title}
+              oninput={() => (editingChart!.titleEdited = true)}
+            />
+          </label>
+          <label class="field">
+            <span>Type</span>
+            <select bind:value={editingChart.type}>
+              <option value="balance">Balance</option>
+              <option value="spending">Spending</option>
+              <option value="income">Income</option>
+              <option value="number">Number</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Size</span>
+            <select bind:value={editingChart.size}>
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Date range</span>
+            <select bind:value={editingChart.dateRange.preset}>
+              <option value="this-month">This Month</option>
+              <option value="this-year">This Year</option>
+              <option value="last-month">Last Month</option>
+              <option value="last-year">Last Year</option>
+              <option value="last-12-months">Last 12 Months</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Visualization</span>
+            <select
+              bind:value={editingChart.visualization}
+              disabled={editingChart.type === 'number'}
+            >
+              <option value="line">Line</option>
+              <option value="bar">Bar</option>
+              <option value="pie">Pie</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Granularity</span>
+            <select
+              bind:value={editingChart.granularity}
+              disabled={editingChart.type === 'number' || editingChart.visualization === 'pie'}
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Categories</span>
+            <select disabled={editingChart.type !== 'spending'}>
+              <option>All categories</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Payees</span>
+            <select disabled={editingChart.type !== 'spending' && editingChart.type !== 'income'}>
+              <option>All payees from loaded transactions</option>
+            </select>
+          </label>
+        </div>
+        <div class="rounded-lg border border-border bg-background p-4 lg:sticky lg:top-5">
           <p class="mb-3 text-sm font-medium">Preview</p>
           <ChartRenderer
             result={resultFor(editingChart)}
