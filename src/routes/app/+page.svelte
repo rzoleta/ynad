@@ -12,6 +12,7 @@
   } from '@lucide/svelte';
   import { createQuery } from '@tanstack/svelte-query';
   import { onMount } from 'svelte';
+  import * as Select from '$lib/components/ui/select/index.js';
   import {
     getChartMetadata,
     createDefaultChart,
@@ -36,6 +37,42 @@
   let editingChart = $state<ChartConfig | null>(null);
   let lastUpdated = $state<Date | null>(null);
   let draggedIndex = $state<number | null>(null);
+
+  const chartTypeOptions = [
+    { value: 'balance', label: 'Balance' },
+    { value: 'spending', label: 'Spending' },
+    { value: 'income', label: 'Income' },
+    { value: 'number', label: 'Number' }
+  ];
+  const chartSizeOptions = [
+    { value: 'small', label: 'Small' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'large', label: 'Large' }
+  ];
+  const dateRangeOptions = [
+    { value: 'this-month', label: 'This Month' },
+    { value: 'this-year', label: 'This Year' },
+    { value: 'last-month', label: 'Last Month' },
+    { value: 'last-year', label: 'Last Year' },
+    { value: 'last-12-months', label: 'Last 12 Months' }
+  ];
+  const visualizationOptions = [
+    { value: 'line', label: 'Line' },
+    { value: 'bar', label: 'Bar' },
+    { value: 'pie', label: 'Pie' }
+  ];
+  const granularityOptions = [
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' }
+  ];
+  const categoryOptions = [{ value: 'all', label: 'All categories' }];
+  const payeeOptions = [{ value: 'all', label: 'All payees from loaded transactions' }];
+
+  function optionLabel(options: { value: string; label: string }[], value: string | undefined) {
+    return options.find((option) => option.value === value)?.label ?? '';
+  }
 
   const snapshotQuery = createQuery<YnabBudgetSnapshot | null>(() => ({
     queryKey: ['ynab', 'snapshot', token, budgetId],
@@ -302,65 +339,109 @@
           </label>
           <label class="field">
             <span>Type</span>
-            <select bind:value={editingChart.type}>
-              <option value="balance">Balance</option>
-              <option value="spending">Spending</option>
-              <option value="income">Income</option>
-              <option value="number">Number</option>
-            </select>
+            <Select.Root type="single" bind:value={editingChart.type}>
+              <Select.Trigger class="w-full">
+                {optionLabel(chartTypeOptions, editingChart.type)}
+              </Select.Trigger>
+              <Select.Content>
+                {#each chartTypeOptions as option (option.value)}
+                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
+                  >
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
           <label class="field">
             <span>Size</span>
-            <select bind:value={editingChart.size}>
-              <option value="small">Small</option>
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
-            </select>
+            <Select.Root type="single" bind:value={editingChart.size}>
+              <Select.Trigger class="w-full">
+                {optionLabel(chartSizeOptions, editingChart.size)}
+              </Select.Trigger>
+              <Select.Content>
+                {#each chartSizeOptions as option (option.value)}
+                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
+                  >
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
           <label class="field">
             <span>Date range</span>
-            <select bind:value={editingChart.dateRange.preset}>
-              <option value="this-month">This Month</option>
-              <option value="this-year">This Year</option>
-              <option value="last-month">Last Month</option>
-              <option value="last-year">Last Year</option>
-              <option value="last-12-months">Last 12 Months</option>
-            </select>
+            <Select.Root type="single" bind:value={editingChart.dateRange.preset}>
+              <Select.Trigger class="w-full">
+                {optionLabel(dateRangeOptions, editingChart.dateRange.preset)}
+              </Select.Trigger>
+              <Select.Content>
+                {#each dateRangeOptions as option (option.value)}
+                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
+                  >
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
           <label class="field">
             <span>Visualization</span>
-            <select
+            <Select.Root
+              type="single"
               bind:value={editingChart.visualization}
               disabled={editingChart.type === 'number'}
             >
-              <option value="line">Line</option>
-              <option value="bar">Bar</option>
-              <option value="pie">Pie</option>
-            </select>
+              <Select.Trigger class="w-full">
+                {optionLabel(visualizationOptions, editingChart.visualization)}
+              </Select.Trigger>
+              <Select.Content>
+                {#each visualizationOptions as option (option.value)}
+                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
+                  >
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
           <label class="field">
             <span>Granularity</span>
-            <select
+            <Select.Root
+              type="single"
               bind:value={editingChart.granularity}
               disabled={editingChart.type === 'number' || editingChart.visualization === 'pie'}
             >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
+              <Select.Trigger class="w-full">
+                {optionLabel(granularityOptions, editingChart.granularity)}
+              </Select.Trigger>
+              <Select.Content>
+                {#each granularityOptions as option (option.value)}
+                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
+                  >
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
           <label class="field">
             <span>Categories</span>
-            <select disabled={editingChart.type !== 'spending'}>
-              <option>All categories</option>
-            </select>
+            <Select.Root type="single" value="all" disabled={editingChart.type !== 'spending'}>
+              <Select.Trigger class="w-full">All categories</Select.Trigger>
+              <Select.Content>
+                {#each categoryOptions as option (option.value)}
+                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
+                  >
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
           <label class="field">
             <span>Payees</span>
-            <select disabled={editingChart.type !== 'spending' && editingChart.type !== 'income'}>
-              <option>All payees from loaded transactions</option>
-            </select>
+            <Select.Root
+              type="single"
+              value="all"
+              disabled={editingChart.type !== 'spending' && editingChart.type !== 'income'}
+            >
+              <Select.Trigger class="w-full">All payees from loaded transactions</Select.Trigger>
+              <Select.Content>
+                {#each payeeOptions as option (option.value)}
+                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
+                  >
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
         </div>
         <div class="rounded-lg border border-border bg-background p-4 lg:sticky lg:top-5">

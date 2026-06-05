@@ -4,6 +4,7 @@
   import { Moon, Sun, Unplug } from '@lucide/svelte';
   import { setMode, userPrefersMode } from 'mode-watcher';
   import { onMount } from 'svelte';
+  import * as Select from '$lib/components/ui/select/index.js';
   import {
     getEffectiveWeekStart,
     readSettings,
@@ -15,6 +16,20 @@
 
   let tokenPresent = $state(false);
   let weekStart = $state<WeekStart>(7);
+
+  const weekStartOptions = [
+    { value: '1', label: 'Monday' },
+    { value: '2', label: 'Tuesday' },
+    { value: '3', label: 'Wednesday' },
+    { value: '4', label: 'Thursday' },
+    { value: '5', label: 'Friday' },
+    { value: '6', label: 'Saturday' },
+    { value: '7', label: 'Sunday' }
+  ];
+  const weekStartValue = $derived(String(weekStart));
+  const weekStartLabel = $derived(
+    weekStartOptions.find((option) => option.value === weekStartValue)?.label ?? 'Sunday'
+  );
 
   onMount(() => {
     tokenPresent = Boolean(readToken());
@@ -70,18 +85,18 @@
       <h2 class="text-lg font-semibold">Localization</h2>
       <label class="field mt-4 max-w-sm">
         <span>Week starts on</span>
-        <select
-          bind:value={weekStart}
-          onchange={(event) => saveWeekStart(Number(event.currentTarget.value) as WeekStart)}
+        <Select.Root
+          type="single"
+          value={weekStartValue}
+          onValueChange={(value) => saveWeekStart(Number(value) as WeekStart)}
         >
-          <option value={1}>Monday</option>
-          <option value={2}>Tuesday</option>
-          <option value={3}>Wednesday</option>
-          <option value={4}>Thursday</option>
-          <option value={5}>Friday</option>
-          <option value={6}>Saturday</option>
-          <option value={7}>Sunday</option>
-        </select>
+          <Select.Trigger class="w-full">{weekStartLabel}</Select.Trigger>
+          <Select.Content>
+            {#each weekStartOptions as option (option.value)}
+              <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
       </label>
     </div>
 
