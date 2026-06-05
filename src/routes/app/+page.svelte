@@ -2,7 +2,6 @@
   import { resolve } from '$app/paths';
   import {
     BarChart3,
-    CircleDollarSign,
     Copy,
     GripVertical,
     LineChart,
@@ -22,8 +21,9 @@
   import { readDashboard, reorderCharts, writeDashboard } from '$lib/app/dashboard-storage';
   import { getEffectiveWeekStart } from '$lib/app/settings';
   import { computeChart, type ChartResult } from '$lib/charts/compute';
+  import ChartRenderer from '$lib/charts/chart-renderer.svelte';
   import { debugFetch } from '$lib/debug';
-  import { cn, formatDateTime, formatMilliunits } from '$lib/utils';
+  import { cn, formatDateTime } from '$lib/utils';
   import { DEFAULT_BUDGET_ID, fetchBudgetSnapshot } from '$lib/ynab/client';
   import { readToken, startYnabOAuth } from '$lib/ynab/auth';
   import type { YnabBudgetSnapshot } from '$lib/ynab/types';
@@ -265,7 +265,7 @@
                 {/if}
               </div>
             </div>
-            {@render ChartPreview(resultFor(chart), chart.type)}
+            <ChartRenderer result={resultFor(chart)} {chart} type={chart.type} />
           </div>
         {/each}
       </div>
@@ -358,7 +358,11 @@
         </label>
         <div class="rounded-lg border border-border bg-background p-4">
           <p class="mb-3 text-sm font-medium">Preview</p>
-          {@render ChartPreview(resultFor(editingChart), editingChart.type)}
+          <ChartRenderer
+            result={resultFor(editingChart)}
+            chart={editingChart}
+            type={editingChart.type}
+          />
         </div>
       </div>
       <div class="flex justify-end gap-2 border-t border-border p-5">
@@ -368,51 +372,3 @@
     </aside>
   {/if}
 </main>
-
-{#snippet ChartPreview(result: ChartResult, type: ChartType)}
-  <div class="mt-5 min-h-48">
-    {#if result.status === 'number'}
-      <div class="flex h-48 items-center rounded-md bg-background p-5">
-        <div>
-          <p class="text-sm text-muted-foreground capitalize">{result.label}</p>
-          <p class="mt-2 text-4xl font-semibold">{formatMilliunits(result.value)}</p>
-        </div>
-      </div>
-    {:else if result.status === 'series'}
-      <div class="space-y-3">
-        <div class="flex h-44 items-end gap-2 rounded-md bg-background p-4">
-          {#each result.points.slice(0, 12) as point (point.label)}
-            <div class="flex min-w-0 flex-1 flex-col items-center gap-2">
-              <div
-                class="w-full rounded-t bg-primary"
-                style={`height:${Math.max(8, Math.min(100, (Math.abs(point.value) / Math.max(...result.points.map((item) => Math.abs(item.value)), 1)) * 100))}%`}
-              ></div>
-              <span class="w-full truncate text-center text-[10px] text-muted-foreground"
-                >{point.label}</span
-              >
-            </div>
-          {/each}
-        </div>
-        {#if result.excluded?.length}
-          <p class="text-xs text-muted-foreground">
-            Excluded non-positive pie slices: {result.excluded.join(', ')}
-          </p>
-        {/if}
-      </div>
-    {:else if result.status === 'error'}
-      <div class="grid h-48 place-items-center rounded-md bg-danger/10 p-5 text-center text-danger">
-        {result.message}
-      </div>
-    {:else}
-      <div
-        class="grid h-48 place-items-center rounded-md bg-background p-5 text-center text-muted-foreground"
-      >
-        <div>
-          <CircleDollarSign class="mx-auto mb-3 text-primary" size={28} />
-          <p>{result.message}</p>
-          <p class="mt-1 text-xs capitalize">{type} chart</p>
-        </div>
-      </div>
-    {/if}
-  </div>
-{/snippet}
