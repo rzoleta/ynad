@@ -1,29 +1,25 @@
-import {
-  addDays,
-  addMonths,
-  addWeeks,
-  addYears,
-  endOfMonth,
-  endOfYear,
-  startOfMonth,
-  startOfYear,
-  subMonths,
-  subYears
-} from 'date-fns';
 import type { ChartConfig } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
 import { debugFetch } from '$lib/debug';
-import type { YnabBudgetSnapshot, YnabTransaction } from '$lib/ynab/types';
+import { defaultAccountsForChart } from '$lib/domain/accounts';
+import { getCategoryLabel, UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categories';
+import { isIsoDateInRange, makeTimeBuckets, resolveDateRange } from '$lib/domain/dates';
+import type {
+  AccountEntity,
+  CurrencyFormat,
+  NormalizedBudgetData,
+  TransactionEntry
+} from '$lib/domain/types';
 
 export type ChartResult =
   | { status: 'empty'; message: string }
-  | { status: 'number'; value: number; label: string }
+  | { status: 'number'; value: number; label: string; currency: CurrencyFormat }
   | { status: 'series'; points: Array<{ label: string; value: number }>; excluded?: string[] }
   | { status: 'error'; message: string };
 
 export function computeChart(
   chart: ChartConfig,
-  snapshot: YnabBudgetSnapshot | null,
+  snapshot: NormalizedBudgetData | null,
   weekStart: WeekStart
 ): ChartResult {
   if (!snapshot) {
@@ -48,46 +44,49 @@ export function computeChart(
   }
 }
 
-function computeBalance(chart: ChartConfig, snapshot: YnabBudgetSnapshot, weekStart: WeekStart) {
+function computeBalance(chart: ChartConfig, snapshot: NormalizedBudgetData, weekStart: WeekStart) {
   const range = resolveDateRange(chart.dateRange);
+  const accounts = filterAccounts(snapshot, chart);
+
   if (chart.visualization === 'pie') {
-    const accounts = filterAccounts(snapshot, chart);
     const points = accounts
-      .map((account) => ({ label: account.name, value: account.balance }))
+      .map((account) => ({ label: account.name, value: account.balanceMilliunits }))
       .filter((point) => point.value !== 0);
     return points.length ? { status: 'series' as const, points } : empty();
   }
 
-  const buckets = makeBuckets(range, chart.granularity ?? 'monthly', weekStart);
-  const accounts = new Set(filterAccounts(snapshot, chart).map((account) => account.id));
+  const buckets = makeTimeBuckets(range, chart.granularity ?? 'monthly', weekStart);
+  const accountIds = new Set(accounts.map((account) => account.id));
   const transactions = snapshot.transactions.filter((transaction) =>
-    accounts.has(transaction.account_id)
+    accountIds.has(transaction.accountId)
   );
   const points = buckets.map((bucket) => {
     const value = transactions
       .filter((transaction) => transaction.date <= bucket.to)
-      .reduce((total, transaction) => total + transaction.amount, 0);
+      .reduce((total, transaction) => total + transaction.amountMilliunits, 0);
     return { label: bucket.label, value };
   });
 
   return points.length ? { status: 'series' as const, points } : empty();
 }
 
-function computeSpending(chart: ChartConfig, snapshot: YnabBudgetSnapshot, weekStart: WeekStart) {
+function computeSpending(chart: ChartConfig, snapshot: NormalizedBudgetData, weekStart: WeekStart) {
   const range = resolveDateRange(chart.dateRange);
-  const entries = getTransactionEntries(snapshot.transactions).filter((entry) => {
-    if (entry.date < range.from || entry.date > range.to) return false;
-    if (entry.transferAccountId) return false;
-    if (entry.amount < 0) return matchesSpendingFilters(entry, chart);
-    if (entry.amount > 0 && entry.categoryId) return matchesSpendingFilters(entry, chart);
+  const entries = snapshot.entries.filter((entry) => {
+    if (!isIsoDateInRange(entry.date, range)) return false;
+    if (entry.isTransfer) return false;
+    if (entry.amountMilliunits < 0) return matchesSpendingFilters(entry, chart, snapshot);
+    if (entry.amountMilliunits > 0 && entry.categoryId) {
+      return matchesSpendingFilters(entry, chart, snapshot);
+    }
     return false;
   });
 
   if (chart.visualization === 'pie') {
     const byCategory = new Map<string, number>();
     for (const entry of entries) {
-      const label = entry.categoryId ?? 'Uncategorized';
-      byCategory.set(label, (byCategory.get(label) ?? 0) - entry.amount);
+      const label = getCategoryLabel(entry.categoryId, snapshot.categoryById);
+      byCategory.set(label, (byCategory.get(label) ?? 0) - entry.amountMilliunits);
     }
     const excluded: string[] = [];
     const points = [...byCategory.entries()]
@@ -102,19 +101,19 @@ function computeSpending(chart: ChartConfig, snapshot: YnabBudgetSnapshot, weekS
   return seriesFromEntries(entries, chart, weekStart, (amount) => -amount);
 }
 
-function computeIncome(chart: ChartConfig, snapshot: YnabBudgetSnapshot, weekStart: WeekStart) {
+function computeIncome(chart: ChartConfig, snapshot: NormalizedBudgetData, weekStart: WeekStart) {
   const range = resolveDateRange(chart.dateRange);
-  const entries = getTransactionEntries(snapshot.transactions).filter((entry) => {
-    if (entry.date < range.from || entry.date > range.to) return false;
-    if (entry.amount <= 0 || entry.transferAccountId) return false;
-    return matchesAccountAndPayee(entry, chart);
+  const entries = snapshot.entries.filter((entry) => {
+    if (!isIsoDateInRange(entry.date, range)) return false;
+    if (entry.amountMilliunits <= 0 || entry.isTransfer) return false;
+    return matchesAccountAndPayee(entry, chart, snapshot);
   });
 
   if (chart.visualization === 'pie') {
     const byPayee = new Map<string, number>();
     for (const entry of entries) {
       const label = entry.payeeName || 'Income';
-      byPayee.set(label, (byPayee.get(label) ?? 0) + entry.amount);
+      byPayee.set(label, (byPayee.get(label) ?? 0) + entry.amountMilliunits);
     }
     const points = [...byPayee.entries()].map(([label, value]) => ({ label, value }));
     return points.length ? { status: 'series' as const, points } : empty();
@@ -123,7 +122,7 @@ function computeIncome(chart: ChartConfig, snapshot: YnabBudgetSnapshot, weekSta
   return seriesFromEntries(entries, chart, weekStart, (amount) => amount);
 }
 
-function computeNumber(chart: ChartConfig, snapshot: YnabBudgetSnapshot, weekStart: WeekStart) {
+function computeNumber(chart: ChartConfig, snapshot: NormalizedBudgetData, weekStart: WeekStart) {
   const metric = chart.numberMetric ?? 'spending';
   const operation = chart.numberOperation ?? 'total';
   const visualChart: ChartConfig = {
@@ -153,18 +152,29 @@ function computeNumber(chart: ChartConfig, snapshot: YnabBudgetSnapshot, weekSta
           ? median(values)
           : values.reduce((total, item) => total + item, 0);
 
-  return { status: 'number' as const, value: value ?? 0, label: operation };
+  return {
+    status: 'number' as const,
+    value: value ?? 0,
+    label: operation,
+    currency: snapshot.budget.currencyFormat
+  };
 }
 
-function computeNetIncome(chart: ChartConfig, snapshot: YnabBudgetSnapshot, weekStart: WeekStart) {
+function computeNetIncome(
+  chart: ChartConfig,
+  snapshot: NormalizedBudgetData,
+  weekStart: WeekStart
+) {
   const income = computeIncome(chart, snapshot, weekStart);
   const spending = computeSpending(chart, snapshot, weekStart);
   if (income.status !== 'series' || spending.status !== 'series') return empty();
 
   const map = new Map<string, number>();
   for (const point of income.points) map.set(point.label, point.value);
-  for (const point of spending.points)
+  for (const point of spending.points) {
     map.set(point.label, (map.get(point.label) ?? 0) - point.value);
+  }
+
   return {
     status: 'series' as const,
     points: [...map.entries()].map(([label, value]) => ({ label, value }))
@@ -172,18 +182,18 @@ function computeNetIncome(chart: ChartConfig, snapshot: YnabBudgetSnapshot, week
 }
 
 function seriesFromEntries(
-  entries: ReturnType<typeof getTransactionEntries>,
+  entries: TransactionEntry[],
   chart: ChartConfig,
   weekStart: WeekStart,
   mapAmount: (amount: number) => number
 ) {
   const range = resolveDateRange(chart.dateRange);
-  const buckets = makeBuckets(range, chart.granularity ?? 'monthly', weekStart);
+  const buckets = makeTimeBuckets(range, chart.granularity ?? 'monthly', weekStart);
   const points = buckets.map((bucket) => ({
     label: bucket.label,
     value: entries
       .filter((entry) => entry.date >= bucket.from && entry.date <= bucket.to)
-      .reduce((total, entry) => total + mapAmount(entry.amount), 0)
+      .reduce((total, entry) => total + mapAmount(entry.amountMilliunits), 0)
   }));
 
   return points.some((point) => point.value !== 0)
@@ -195,117 +205,48 @@ function empty() {
   return { status: 'empty' as const, message: 'No matching data.' };
 }
 
-function filterAccounts(snapshot: YnabBudgetSnapshot, chart: ChartConfig) {
+function filterAccounts(snapshot: NormalizedBudgetData, chart: ChartConfig): AccountEntity[] {
   if (chart.accounts.mode === 'selected') {
     const ids = new Set(chart.accounts.ids);
     return snapshot.accounts.filter((account) => ids.has(account.id));
   }
 
-  if (chart.type === 'spending') return snapshot.accounts.filter((account) => account.on_budget);
-  return snapshot.accounts;
+  return defaultAccountsForChart(chart.type, snapshot.accounts);
 }
 
 function matchesSpendingFilters(
-  entry: ReturnType<typeof getTransactionEntries>[number],
-  chart: ChartConfig
+  entry: TransactionEntry,
+  chart: ChartConfig,
+  snapshot: NormalizedBudgetData
 ) {
-  if (!matchesAccountAndPayee(entry, chart)) return false;
+  if (!matchesAccountAndPayee(entry, chart, snapshot)) return false;
   if (!chart.categories || chart.categories.mode === 'all') return true;
-  return chart.categories.ids.includes(entry.categoryId ?? 'uncategorized');
+  return chart.categories.ids.includes(entry.categoryId ?? UNCATEGORIZED_CATEGORY_ID);
 }
 
 function matchesAccountAndPayee(
-  entry: ReturnType<typeof getTransactionEntries>[number],
-  chart: ChartConfig
+  entry: TransactionEntry,
+  chart: ChartConfig,
+  snapshot: NormalizedBudgetData
 ) {
-  if (chart.accounts.mode === 'selected' && !chart.accounts.ids.includes(entry.accountId))
-    return false;
+  if (!matchesAccount(entry, chart, snapshot)) return false;
   if (!chart.payees || chart.payees.mode === 'all') return true;
   return chart.payees.payees.some((payee) =>
     payee.id ? payee.id === entry.payeeId : payee.name === entry.payeeName
   );
 }
 
-function getTransactionEntries(transactions: YnabTransaction[]) {
-  return transactions.flatMap((transaction) => {
-    if (transaction.subtransactions?.length) {
-      return transaction.subtransactions
-        .filter((subtransaction) => !subtransaction.deleted)
-        .map((subtransaction) => ({
-          date: transaction.date,
-          accountId: transaction.account_id,
-          amount: subtransaction.amount,
-          categoryId: subtransaction.category_id ?? transaction.category_id,
-          payeeId: subtransaction.payee_id ?? transaction.payee_id,
-          payeeName: subtransaction.payee_name ?? transaction.payee_name,
-          transferAccountId: transaction.transfer_account_id
-        }));
-    }
-
-    return [
-      {
-        date: transaction.date,
-        accountId: transaction.account_id,
-        amount: transaction.amount,
-        categoryId: transaction.category_id,
-        payeeId: transaction.payee_id,
-        payeeName: transaction.payee_name,
-        transferAccountId: transaction.transfer_account_id
-      }
-    ];
-  });
-}
-
-function resolveDateRange(range: ChartConfig['dateRange']) {
-  const now = new Date();
-  if (range.preset === 'custom') return { from: range.from, to: range.to };
-  if (range.preset === 'this-year') return isoRange(startOfYear(now), endOfYear(now));
-  if (range.preset === 'last-month') {
-    const date = subMonths(now, 1);
-    return isoRange(startOfMonth(date), endOfMonth(date));
-  }
-  if (range.preset === 'last-year') {
-    const date = subYears(now, 1);
-    return isoRange(startOfYear(date), endOfYear(date));
-  }
-  if (range.preset === 'last-12-months') return isoRange(startOfMonth(subMonths(now, 11)), now);
-  return isoRange(startOfMonth(now), endOfMonth(now));
-}
-
-function isoRange(from: Date, to: Date) {
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
-}
-
-function makeBuckets(
-  range: { from: string; to: string },
-  granularity: NonNullable<ChartConfig['granularity']>,
-  weekStart: WeekStart
+function matchesAccount(
+  entry: TransactionEntry,
+  chart: ChartConfig,
+  snapshot: NormalizedBudgetData
 ) {
-  void weekStart;
-  const buckets: Array<{ label: string; from: string; to: string }> = [];
-  let cursor = new Date(`${range.from}T00:00:00`);
-  const end = new Date(`${range.to}T00:00:00`);
+  if (chart.accounts.mode === 'selected') return chart.accounts.ids.includes(entry.accountId);
 
-  while (cursor <= end) {
-    const from = new Date(cursor);
-    const next =
-      granularity === 'daily'
-        ? addDays(cursor, 1)
-        : granularity === 'weekly'
-          ? addWeeks(cursor, 1)
-          : granularity === 'yearly'
-            ? addYears(cursor, 1)
-            : addMonths(cursor, 1);
-    const to = new Date(Math.min(addDays(next, -1).getTime(), end.getTime()));
-    buckets.push({
-      label: from.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-      from: from.toISOString().slice(0, 10),
-      to: to.toISOString().slice(0, 10)
-    });
-    cursor = next;
-  }
-
-  return buckets;
+  const defaultAccountIds = new Set(
+    defaultAccountsForChart(chart.type, snapshot.accounts).map((account) => account.id)
+  );
+  return defaultAccountIds.has(entry.accountId);
 }
 
 function median(values: number[]) {

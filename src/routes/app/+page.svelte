@@ -27,7 +27,7 @@
   import { cn, formatDateTime } from '$lib/utils';
   import { DEFAULT_BUDGET_ID, fetchBudgetSnapshot } from '$lib/ynab/client';
   import { readToken, startYnabOAuth } from '$lib/ynab/auth';
-  import type { YnabBudgetSnapshot } from '$lib/ynab/types';
+  import type { NormalizedBudgetData } from '$lib/domain/types';
 
   let token = $state<string | null>(null);
   let budgetId = $state<string | null>(null);
@@ -74,7 +74,7 @@
     return options.find((option) => option.value === value)?.label ?? '';
   }
 
-  const snapshotQuery = createQuery<YnabBudgetSnapshot | null>(() => ({
+  const snapshotQuery = createQuery<NormalizedBudgetData | null>(() => ({
     queryKey: ['ynab', 'snapshot', token, budgetId],
     queryFn: async () => {
       debugFetch('query:snapshot:fn', {
@@ -83,7 +83,7 @@
       });
       if (!token || !budgetId) return null;
       const snapshot = await fetchBudgetSnapshot(token, budgetId);
-      lastUpdated = new Date();
+      lastUpdated = snapshot.fetchedAt;
       return snapshot;
     },
     enabled: Boolean(token && budgetId)

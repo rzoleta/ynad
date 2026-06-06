@@ -1,9 +1,19 @@
+export type YnabCurrencyFormat = {
+  iso_code: string;
+  example_format?: string;
+  decimal_digits?: number;
+  decimal_separator?: string;
+  symbol_first?: boolean;
+  group_separator?: string;
+  currency_symbol?: string;
+  display_symbol?: boolean;
+};
+
 export type YnabBudget = {
   id: string;
   name: string;
-  currency_format?: {
-    iso_code: string;
-  };
+  last_modified_on?: string | null;
+  currency_format?: YnabCurrencyFormat;
 };
 
 export type YnabAccount = {
@@ -39,6 +49,7 @@ export type YnabSubtransaction = {
   payee_id: string | null;
   payee_name: string | null;
   category_id: string | null;
+  transfer_account_id?: string | null;
   deleted: boolean;
 };
 
@@ -60,7 +71,7 @@ export type YnabTransaction = {
 };
 
 export type YnabBudgetSnapshot = {
-  budget: YnabBudget | null;
+  budget: YnabBudget;
   budgets: YnabBudget[];
   accounts: YnabAccount[];
   categoryGroups: YnabCategoryGroup[];

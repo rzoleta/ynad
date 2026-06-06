@@ -6,6 +6,8 @@ import type {
   YnabTransaction
 } from './types';
 import { debugFetch } from '$lib/debug';
+import { normalizeBudgetData } from '$lib/domain/normalize';
+import type { NormalizedBudgetData } from '$lib/domain/types';
 
 const API_BASE = 'https://api.ynab.com/v1';
 export const DEFAULT_BUDGET_ID = 'default';
@@ -97,36 +99,40 @@ export async function fetchBudgets(token: string) {
 export async function fetchBudgetSnapshot(
   token: string,
   budgetId: string
-): Promise<YnabBudgetSnapshot> {
+): Promise<NormalizedBudgetData> {
   debugFetch('snapshot:start', { budgetId });
-  const [budgetResponse, accountsResponse, categoriesResponse, transactionsResponse] =
-    await Promise.all([
-      ynabFetch<{ data: { budget: YnabBudget; server_knowledge?: number } }>(
-        token,
-        `/budgets/${budgetId}`
-      ),
-      ynabFetch<{ data: { accounts: YnabAccount[]; server_knowledge?: number } }>(
-        token,
-        `/budgets/${budgetId}/accounts`
-      ),
-      ynabFetch<{ data: { category_groups: YnabCategoryGroup[]; server_knowledge?: number } }>(
-        token,
-        `/budgets/${budgetId}/categories`
-      ),
-      ynabFetch<{ data: { transactions: YnabTransaction[]; server_knowledge?: number } }>(
-        token,
-        `/budgets/${budgetId}/transactions`
-      )
-    ]);
-
-  const snapshot = {
-    budget: budgetResponse.data.budget,
-    budgets: [],
-    accounts: accountsResponse.data.accounts.filter((account) => !account.deleted),
-    categoryGroups: categoriesResponse.data.category_groups,
-    transactions: transactionsResponse.data.transactions.filter(
-      (transaction) => !transaction.deleted
+  const [
+    budgetsResponse,
+    budgetResponse,
+    accountsResponse,
+    categoriesResponse,
+    transactionsResponse
+  ] = await Promise.all([
+    ynabFetch<{ data: { budgets: YnabBudget[] } }>(token, '/budgets'),
+    ynabFetch<{ data: { budget: YnabBudget; server_knowledge?: number } }>(
+      token,
+      `/budgets/${budgetId}`
     ),
+    ynabFetch<{ data: { accounts: YnabAccount[]; server_knowledge?: number } }>(
+      token,
+      `/budgets/${budgetId}/accounts`
+    ),
+    ynabFetch<{ data: { category_groups: YnabCategoryGroup[]; server_knowledge?: number } }>(
+      token,
+      `/budgets/${budgetId}/categories`
+    ),
+    ynabFetch<{ data: { transactions: YnabTransaction[]; server_knowledge?: number } }>(
+      token,
+      `/budgets/${budgetId}/transactions`
+    )
+  ]);
+
+  const rawSnapshot: YnabBudgetSnapshot = {
+    budget: budgetResponse.data.budget,
+    budgets: budgetsResponse.data.budgets,
+    accounts: accountsResponse.data.accounts,
+    categoryGroups: categoriesResponse.data.category_groups,
+    transactions: transactionsResponse.data.transactions,
     serverKnowledge:
       transactionsResponse.data.server_knowledge ??
       categoriesResponse.data.server_knowledge ??
@@ -134,13 +140,16 @@ export async function fetchBudgetSnapshot(
       budgetResponse.data.server_knowledge ??
       null
   };
+  const snapshot = normalizeBudgetData(rawSnapshot);
 
   debugFetch('snapshot:success', {
     budgetId,
-    budgetName: snapshot.budget?.name,
+    budgetName: snapshot.budget.name,
     accounts: snapshot.accounts.length,
     categoryGroups: snapshot.categoryGroups.length,
     transactions: snapshot.transactions.length,
+    entries: snapshot.entries.length,
+    payees: snapshot.payees.length,
     serverKnowledge: snapshot.serverKnowledge
   });
 

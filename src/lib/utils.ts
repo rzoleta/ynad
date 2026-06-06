@@ -24,11 +24,3 @@ export function formatDateTime(value: Date | null) {
     minute: '2-digit'
   }).format(value);
 }
-
-export function formatMilliunits(value: number, currency = 'USD') {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2
-  }).format(value / 1000);
-}

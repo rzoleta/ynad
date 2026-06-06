@@ -5,7 +5,8 @@
   import * as Chart from '$lib/components/ui/chart';
   import type { ChartConfig as AppChartConfig, ChartType } from '$lib/app/chart-config';
   import type { ChartResult } from '$lib/charts/compute';
-  import { cn, formatMilliunits } from '$lib/utils';
+  import { formatMilliunits } from '$lib/domain/currency';
+  import { cn } from '$lib/utils';
 
   let {
     result,
@@ -68,7 +69,9 @@
     <div class="flex h-48 items-center rounded-md bg-background p-5">
       <div>
         <p class="text-sm text-muted-foreground capitalize">{result.label}</p>
-        <p class="mt-2 text-4xl font-semibold">{formatMilliunits(result.value)}</p>
+        <p class="mt-2 text-4xl font-semibold">
+          {formatMilliunits(result.value, result.currency)}
+        </p>
       </div>
     </div>
   {:else if result.status === 'series'}
