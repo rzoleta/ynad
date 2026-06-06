@@ -14,6 +14,14 @@
   import { onMount } from 'svelte';
   import * as Select from '$lib/components/ui/select/index.js';
   import {
+    formatRateLimitPause,
+    getRateLimitPauseUntil,
+    isRateLimitPauseActive,
+    readYnabConnectionState,
+    shouldRetryYnabQuery,
+    type YnabConnectionState
+  } from '$lib/app/app-state';
+  import {
     getChartMetadata,
     createDefaultChart,
     type ChartConfig,
@@ -25,17 +33,22 @@
   import ChartRenderer from '$lib/charts/chart-renderer.svelte';
   import { debugFetch } from '$lib/debug';
   import { cn, formatDateTime } from '$lib/utils';
-  import { DEFAULT_BUDGET_ID, fetchBudgetSnapshot } from '$lib/ynab/client';
-  import { readToken, startYnabOAuth } from '$lib/ynab/auth';
+  import { DEFAULT_BUDGET_ID } from '$lib/ynab/client';
+  import { fetchNormalizedBudgetSnapshot } from '$lib/ynab/snapshot';
+  import { getYnabErrorCode, getYnabErrorMessage } from '$lib/ynab/errors';
+  import { startYnabOAuth } from '$lib/ynab/auth';
   import type { NormalizedBudgetData } from '$lib/domain/types';
 
   let token = $state<string | null>(null);
   let budgetId = $state<string | null>(null);
+  let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
   let charts = $state<ChartConfig[]>([]);
   let editMode = $state(false);
   let editorOpen = $state(false);
   let editingChart = $state<ChartConfig | null>(null);
-  let lastUpdated = $state<Date | null>(null);
+  let rateLimitPauseUntil = $state<number | null>(null);
+  let lastRateLimitError = $state<unknown>(null);
+  let now = $state(Date.now());
   let draggedIndex = $state<number | null>(null);
 
   const chartTypeOptions = [
@@ -69,6 +82,13 @@
   ];
   const categoryOptions = [{ value: 'all', label: 'All categories' }];
   const payeeOptions = [{ value: 'all', label: 'All payees from loaded transactions' }];
+  const dashboardSubtitle = $derived(
+    connectionStatus === 'connected'
+      ? 'Live dashboard'
+      : connectionStatus === 'expired'
+        ? 'Reconnect YNAB to refresh'
+        : 'Connect YNAB to start'
+  );
 
   function optionLabel(options: { value: string; label: string }[], value: string | undefined) {
     return options.find((option) => option.value === value)?.label ?? '';
@@ -82,38 +102,69 @@
         budgetId
       });
       if (!token || !budgetId) return null;
-      const snapshot = await fetchBudgetSnapshot(token, budgetId);
-      lastUpdated = snapshot.fetchedAt;
-      return snapshot;
+      return fetchNormalizedBudgetSnapshot(token, budgetId);
     },
-    enabled: Boolean(token && budgetId)
+    enabled: Boolean(token && budgetId),
+    retry: shouldRetryYnabQuery,
+    refetchOnWindowFocus: () => !isRateLimitPauseActive(rateLimitPauseUntil)
   }));
+  const lastUpdated = $derived(snapshotQuery.data?.fetchedAt ?? null);
+  const canRefresh = $derived(Boolean(token && budgetId));
+  const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
 
   onMount(() => {
-    const storedToken = readToken();
-    token = storedToken?.accessToken ?? null;
-    budgetId = token ? DEFAULT_BUDGET_ID : null;
+    const connection = readYnabConnectionState();
+    token = connection.accessToken;
+    connectionStatus = connection.status;
+    budgetId = connection.status === 'disconnected' ? null : DEFAULT_BUDGET_ID;
     charts = readDashboard(budgetId).charts;
     debugFetch('app:on-mount', {
       hasToken: Boolean(token),
-      tokenExpiresAt: storedToken?.expiresAt ? new Date(storedToken.expiresAt).toISOString() : null,
+      connectionStatus,
+      tokenExpiresAt: connection.expiresAt ? new Date(connection.expiresAt).toISOString() : null,
       budgetId,
       charts: charts.length
     });
+
+    const interval = window.setInterval(() => {
+      now = Date.now();
+    }, 1000);
+
+    return () => window.clearInterval(interval);
   });
 
   $effect(() => {
     debugFetch('state:snapshot-query', {
       hasToken: Boolean(token),
+      connectionStatus,
       budgetId,
       status: snapshotQuery.status,
       fetchStatus: snapshotQuery.fetchStatus,
       hasError: Boolean(snapshotQuery.error),
+      errorCode: snapshotQuery.error ? getYnabErrorCode(snapshotQuery.error) : null,
       error: snapshotQuery.error instanceof Error ? snapshotQuery.error.message : null,
       hasSnapshot: Boolean(snapshotQuery.data),
       accounts: snapshotQuery.data?.accounts.length ?? null,
-      transactions: snapshotQuery.data?.transactions.length ?? null
+      transactions: snapshotQuery.data?.transactions.length ?? null,
+      rateLimitPauseUntil
     });
+  });
+
+  $effect(() => {
+    if (!snapshotQuery.error) {
+      lastRateLimitError = null;
+      return;
+    }
+
+    if (snapshotQuery.error === lastRateLimitError) return;
+
+    const pauseUntil = getRateLimitPauseUntil(snapshotQuery.error);
+    if (pauseUntil) rateLimitPauseUntil = pauseUntil;
+    lastRateLimitError = snapshotQuery.error;
+  });
+
+  $effect(() => {
+    if (snapshotQuery.data && !snapshotQuery.error) rateLimitPauseUntil = null;
   });
 
   function persist(next: ChartConfig[]) {
@@ -167,11 +218,44 @@
 
   async function refresh() {
     debugFetch('action:manual-refresh', { hasToken: Boolean(token), budgetId });
+    rateLimitPauseUntil = null;
     await snapshotQuery.refetch();
   }
 
   function resultFor(chart: ChartConfig): ChartResult {
+    if (!snapshotQuery.data && connectionStatus === 'expired') {
+      return { status: 'error', message: 'Reconnect YNAB to refresh this chart.' };
+    }
+
+    if (!snapshotQuery.data && snapshotQuery.error) {
+      return { status: 'error', message: getDashboardErrorMessage(snapshotQuery.error) };
+    }
+
     return computeChart(chart, snapshotQuery.data ?? null, getEffectiveWeekStart());
+  }
+
+  function getDashboardErrorTitle(error: unknown) {
+    const code = getYnabErrorCode(error);
+    if (code === 'reconnect-required') return 'Reconnect YNAB';
+    if (code === 'rate-limited') return 'YNAB rate limit reached';
+    if (code === 'network-unavailable') return 'Network unavailable';
+    if (code === 'budget-unavailable') return 'Budget unavailable';
+    return 'YNAB data could not be fetched';
+  }
+
+  function getDashboardErrorMessage(error: unknown) {
+    const code = getYnabErrorCode(error);
+    if (code === 'reconnect-required') return 'Your YNAB connection needs to be renewed.';
+    if (code === 'rate-limited') {
+      return rateLimitPauseLabel
+        ? `Automatic focus refresh is paused for ${rateLimitPauseLabel}. Manual refresh is still available.`
+        : 'Automatic focus refresh is paused. Manual refresh is still available.';
+    }
+    if (code === 'network-unavailable') return 'Check your connection, then refresh YNAB data.';
+    if (code === 'budget-unavailable') {
+      return 'The selected budget is no longer available from YNAB.';
+    }
+    return getYnabErrorMessage(error);
   }
 </script>
 
@@ -185,12 +269,17 @@
       <div>
         <a href={resolve('/')} class="text-xl font-semibold">YNAD</a>
         <p class="text-sm text-muted-foreground">
-          {budgetId ? 'Live dashboard' : 'Connect YNAB to start'}
+          {dashboardSubtitle}
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-sm text-muted-foreground">Updated {formatDateTime(lastUpdated)}</span>
-        <button class="icon-button" title="Refresh YNAB data" onclick={refresh}>
+        <button
+          class="icon-button"
+          title="Refresh YNAB data"
+          disabled={!canRefresh || snapshotQuery.isFetching}
+          onclick={refresh}
+        >
           <RefreshCcw size={17} />
         </button>
         <a class="icon-button" title="Settings" href={resolve('/app/settings')}
@@ -208,7 +297,7 @@
   </header>
 
   <section class="mx-auto max-w-7xl px-5 py-6">
-    {#if !token}
+    {#if connectionStatus === 'disconnected'}
       <div class="rounded-lg border border-border bg-card p-8">
         <h1 class="text-2xl font-semibold">Connect YNAB</h1>
         <p class="mt-2 max-w-xl text-muted-foreground">
@@ -217,9 +306,39 @@
         </p>
         <button class="button primary mt-6" onclick={startYnabOAuth}>Connect YNAB</button>
       </div>
+    {:else if connectionStatus === 'expired'}
+      <div
+        class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-danger/40 bg-danger/10 p-4 text-danger"
+      >
+        <div>
+          <p class="font-medium">Reconnect YNAB</p>
+          <p class="mt-1 text-sm">
+            The browser token has expired. Local chart cards remain available, but live data will
+            not refresh until you reconnect.
+          </p>
+        </div>
+        <button class="button primary" onclick={startYnabOAuth}>Reconnect YNAB</button>
+      </div>
     {:else if snapshotQuery.error}
-      <div class="mb-5 rounded-lg border border-danger/40 bg-danger/10 p-4 text-danger">
-        YNAB data could not be fetched. Chart cards below will show per-chart fallback states.
+      <div
+        class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-danger/40 bg-danger/10 p-4 text-danger"
+      >
+        <div>
+          <p class="font-medium">{getDashboardErrorTitle(snapshotQuery.error)}</p>
+          <p class="mt-1 text-sm">{getDashboardErrorMessage(snapshotQuery.error)}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          {#if getYnabErrorCode(snapshotQuery.error) === 'reconnect-required'}
+            <button class="button primary" onclick={startYnabOAuth}>Reconnect YNAB</button>
+          {:else if getYnabErrorCode(snapshotQuery.error) === 'budget-unavailable'}
+            <a class="button secondary" href={resolve('/app/settings')}>Settings</a>
+          {:else}
+            <button class="button secondary" disabled={!canRefresh} onclick={refresh}>
+              <RefreshCcw size={16} />
+              Refresh
+            </button>
+          {/if}
+        </div>
       </div>
     {/if}
 

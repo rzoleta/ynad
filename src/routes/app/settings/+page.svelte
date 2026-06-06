@@ -5,17 +5,19 @@
   import { setMode, userPrefersMode } from 'mode-watcher';
   import { onMount } from 'svelte';
   import * as Select from '$lib/components/ui/select/index.js';
+  import { readYnabConnectionState, type YnabConnectionState } from '$lib/app/app-state';
   import {
     getEffectiveWeekStart,
     readSettings,
     writeSettings,
     type WeekStart
   } from '$lib/app/settings';
-  import { clearYnabConnection, readToken } from '$lib/ynab/auth';
+  import { clearYnabConnection, startYnabOAuth } from '$lib/ynab/auth';
   import { DEFAULT_BUDGET_ID } from '$lib/ynab/client';
 
-  let tokenPresent = $state(false);
+  let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
   let weekStart = $state<WeekStart>(7);
+  const tokenPresent = $derived(connectionStatus !== 'disconnected');
 
   const weekStartOptions = [
     { value: '1', label: 'Monday' },
@@ -32,7 +34,7 @@
   );
 
   onMount(() => {
-    tokenPresent = Boolean(readToken());
+    connectionStatus = readYnabConnectionState().status;
     weekStart = getEffectiveWeekStart();
   });
 
@@ -103,15 +105,24 @@
     <div class="rounded-lg border border-border bg-card p-5">
       <h2 class="text-lg font-semibold">YNAB connection</h2>
       <p class="mt-1 text-sm text-muted-foreground">
-        {tokenPresent ? 'YNAB is connected in this browser.' : 'YNAB is not connected.'}
+        {connectionStatus === 'connected'
+          ? 'YNAB is connected in this browser.'
+          : connectionStatus === 'expired'
+            ? 'The YNAB token in this browser has expired.'
+            : 'YNAB is not connected.'}
       </p>
       <p class="mt-2 text-xs text-muted-foreground">
         Selected budget: {tokenPresent ? DEFAULT_BUDGET_ID : 'None'}
       </p>
-      <button class="button danger mt-4" onclick={disconnect}>
-        <Unplug size={16} />
-        Disconnect YNAB
-      </button>
+      <div class="mt-4 flex flex-wrap gap-2">
+        {#if connectionStatus === 'expired'}
+          <button class="button primary" onclick={startYnabOAuth}>Reconnect YNAB</button>
+        {/if}
+        <button class="button danger" onclick={disconnect}>
+          <Unplug size={16} />
+          Disconnect YNAB
+        </button>
+      </div>
     </div>
   </section>
 </main>

@@ -1,32 +1,11 @@
-import type {
-  YnabAccount,
-  YnabBudget,
-  YnabBudgetSnapshot,
-  YnabCategoryGroup,
-  YnabTransaction
-} from './types';
 import { debugFetch } from '$lib/debug';
-import { normalizeBudgetData } from '$lib/domain/normalize';
-import type { NormalizedBudgetData } from '$lib/domain/types';
+import { YnabClientError } from './errors';
+import type { YnabBudget } from './types';
 
 const API_BASE = 'https://api.ynab.com/v1';
 export const DEFAULT_BUDGET_ID = 'default';
-
-export type YnabErrorCode =
-  | 'reconnect-required'
-  | 'rate-limited'
-  | 'network-unavailable'
-  | 'budget-unavailable'
-  | 'fetch-error';
-
-export class YnabClientError extends Error {
-  constructor(
-    public code: YnabErrorCode,
-    message: string
-  ) {
-    super(message);
-  }
-}
+export type { YnabErrorCode } from './errors';
+export { YnabClientError } from './errors';
 
 export async function ynabFetch<T>(token: string, path: string): Promise<T> {
   let response: Response;
@@ -46,7 +25,11 @@ export async function ynabFetch<T>(token: string, path: string): Promise<T> {
       path,
       error: error instanceof Error ? error.message : String(error)
     });
-    throw new YnabClientError('network-unavailable', 'Network unavailable.');
+    throw new YnabClientError({
+      code: 'network-unavailable',
+      message: 'Network unavailable.',
+      status: null
+    });
   }
 
   debugFetch('request:response', {
@@ -56,15 +39,28 @@ export async function ynabFetch<T>(token: string, path: string): Promise<T> {
   });
 
   if (response.status === 401 || response.status === 403) {
-    throw new YnabClientError('reconnect-required', 'Reconnect YNAB.');
+    throw new YnabClientError({
+      code: 'reconnect-required',
+      message: 'Reconnect YNAB.',
+      status: response.status
+    });
   }
 
   if (response.status === 404) {
-    throw new YnabClientError('budget-unavailable', 'Budget unavailable.');
+    throw new YnabClientError({
+      code: 'budget-unavailable',
+      message: 'Budget unavailable.',
+      status: response.status
+    });
   }
 
   if (response.status === 429) {
-    throw new YnabClientError('rate-limited', 'YNAB rate limit reached.');
+    throw new YnabClientError({
+      code: 'rate-limited',
+      message: 'YNAB rate limit reached.',
+      status: response.status,
+      retryAfterSeconds: parseRetryAfter(response.headers.get('retry-after'))
+    });
   }
 
   if (!response.ok) {
@@ -78,7 +74,11 @@ export async function ynabFetch<T>(token: string, path: string): Promise<T> {
         .catch(() => null);
     }
     debugFetch('request:error-body', { path, status: response.status, body: errorBody });
-    throw new YnabClientError('fetch-error', `YNAB request failed (${response.status}).`);
+    throw new YnabClientError({
+      code: 'fetch-error',
+      message: `YNAB request failed (${response.status}).`,
+      status: response.status
+    });
   }
 
   const body = (await response.json()) as T;
@@ -96,62 +96,14 @@ export async function fetchBudgets(token: string) {
   return response.data.budgets;
 }
 
-export async function fetchBudgetSnapshot(
-  token: string,
-  budgetId: string
-): Promise<NormalizedBudgetData> {
-  debugFetch('snapshot:start', { budgetId });
-  const [
-    budgetsResponse,
-    budgetResponse,
-    accountsResponse,
-    categoriesResponse,
-    transactionsResponse
-  ] = await Promise.all([
-    ynabFetch<{ data: { budgets: YnabBudget[] } }>(token, '/budgets'),
-    ynabFetch<{ data: { budget: YnabBudget; server_knowledge?: number } }>(
-      token,
-      `/budgets/${budgetId}`
-    ),
-    ynabFetch<{ data: { accounts: YnabAccount[]; server_knowledge?: number } }>(
-      token,
-      `/budgets/${budgetId}/accounts`
-    ),
-    ynabFetch<{ data: { category_groups: YnabCategoryGroup[]; server_knowledge?: number } }>(
-      token,
-      `/budgets/${budgetId}/categories`
-    ),
-    ynabFetch<{ data: { transactions: YnabTransaction[]; server_knowledge?: number } }>(
-      token,
-      `/budgets/${budgetId}/transactions`
-    )
-  ]);
+function parseRetryAfter(value: string | null): number | null {
+  if (!value) return null;
 
-  const rawSnapshot: YnabBudgetSnapshot = {
-    budget: budgetResponse.data.budget,
-    budgets: budgetsResponse.data.budgets,
-    accounts: accountsResponse.data.accounts,
-    categoryGroups: categoriesResponse.data.category_groups,
-    transactions: transactionsResponse.data.transactions,
-    serverKnowledge:
-      transactionsResponse.data.server_knowledge ??
-      categoriesResponse.data.server_knowledge ??
-      accountsResponse.data.server_knowledge ??
-      budgetResponse.data.server_knowledge ??
-      null
-  };
-  const snapshot = normalizeBudgetData(rawSnapshot);
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
 
-  debugFetch('snapshot:success', {
-    budgetId,
-    budgetName: snapshot.budget.name,
-    accounts: snapshot.accounts.length,
-    categoryGroups: snapshot.categoryGroups.length,
-    transactions: snapshot.transactions.length,
-    entries: snapshot.entries.length,
-    payees: snapshot.payees.length,
-    serverKnowledge: snapshot.serverKnowledge
-  });
+  const retryAt = Date.parse(value);
+  if (!Number.isFinite(retryAt)) return null;
 
-  return snapshot;
+  return Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
 }

@@ -4,6 +4,7 @@
   import favicon from '$lib/assets/favicon.svg';
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
   import { ModeWatcher } from 'mode-watcher';
+  import { shouldRetryYnabQuery } from '$lib/app/app-state';
 
   let { children } = $props();
 
@@ -12,7 +13,7 @@
       queries: {
         staleTime: 1000 * 60 * 5,
         refetchOnWindowFocus: true,
-        retry: 1
+        retry: shouldRetryYnabQuery
       }
     }
   });
