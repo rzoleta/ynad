@@ -1,7 +1,7 @@
 <script lang="ts">
   import { scaleBand, scaleOrdinal } from 'd3-scale';
   import { BarChart, LineChart, PieChart } from 'layerchart';
-  import { CircleDollarSign } from '@lucide/svelte';
+  import { CircleDollarSign, LoaderCircle } from '@lucide/svelte';
   import * as Chart from '$lib/components/ui/chart';
   import type { ChartConfig as AppChartConfig, ChartType } from '$lib/app/chart-config';
   import { chartColorForKey, type ChartResult } from '$lib/charts/types';
@@ -14,12 +14,14 @@
     chart,
     type,
     currency = null,
+    loading = false,
     class: className
   }: {
     result: ChartResult;
     chart: AppChartConfig;
     type: ChartType;
     currency?: CurrencyFormat | null;
+    loading?: boolean;
     class?: string;
   } = $props();
 
@@ -114,6 +116,7 @@
       }${excludedSummary}`;
     }
 
+    if (loading) return `${title}. Loading YNAB data.`;
     if (result.status === 'error') return `${title}. Chart could not load. ${result.message}`;
     return `${title}. No matching data. ${result.message}`;
   });
@@ -195,6 +198,17 @@
           Excluded non-positive pie slices: {excludedLabels}
         </p>
       {/if}
+    </div>
+  {:else if loading}
+    <div
+      class="grid h-48 place-items-center rounded-md bg-background p-5 text-center text-muted-foreground"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div>
+        <LoaderCircle class="mx-auto mb-3 animate-spin text-primary" size={28} />
+        <p class="font-medium text-foreground">Loading YNAB data</p>
+      </div>
     </div>
   {:else if result.status === 'error'}
     <div

@@ -50,6 +50,7 @@
   let lastRateLimitError = $state<unknown>(null);
   let now = $state(Date.now());
   let draggedIndex = $state<number | null>(null);
+  let manualRefreshInProgress = $state(false);
 
   const dashboardSubtitle = $derived(
     connectionStatus === 'connected'
@@ -83,6 +84,14 @@
   const canRefresh = $derived(Boolean(token));
   const isRefreshing = $derived(budgetSelectionQuery.isFetching || snapshotQuery.isFetching);
   const dashboardError = $derived(snapshotQuery.error ?? budgetSelectionQuery.error ?? null);
+  const isSnapshotLoading = $derived(
+    Boolean(
+      token &&
+      budgetId &&
+      ((!snapshotQuery.data && snapshotQuery.isFetching) || manualRefreshInProgress) &&
+      !dashboardError
+    )
+  );
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
 
   onMount(() => {
@@ -186,9 +195,15 @@
   }
 
   async function refresh() {
-    rateLimitPauseUntil = null;
-    await budgetSelectionQuery.refetch();
-    await snapshotQuery.refetch();
+    manualRefreshInProgress = true;
+
+    try {
+      rateLimitPauseUntil = null;
+      await budgetSelectionQuery.refetch();
+      await snapshotQuery.refetch();
+    } finally {
+      manualRefreshInProgress = false;
+    }
   }
 
   function resultFor(chart: ChartConfig): ChartResult {
@@ -245,6 +260,7 @@
     {canRefresh}
     {isRefreshing}
     {editMode}
+    disabled={isSnapshotLoading}
     onRefresh={refresh}
     onToggleEdit={() => (editMode = !editMode)}
     onAddChart={openNew}
@@ -275,6 +291,8 @@
             {chart}
             result={resultFor(chart)}
             data={snapshotQuery.data ?? null}
+            dataLoading={isSnapshotLoading}
+            disabled={isSnapshotLoading}
             {editMode}
             {index}
             total={charts.length}

@@ -21,6 +21,8 @@
     chart,
     result,
     data,
+    dataLoading,
+    disabled = false,
     editMode,
     index,
     total,
@@ -35,6 +37,8 @@
     chart: ChartConfig;
     result: ChartResult;
     data: NormalizedBudgetData | null;
+    dataLoading: boolean;
+    disabled?: boolean;
     editMode: boolean;
     index: number;
     total: number;
@@ -75,18 +79,18 @@
   });
 
   function handleDragStart() {
-    if (!editMode || !isDesktop) return;
+    if (disabled || !editMode || !isDesktop) return;
     onDragStart(index);
   }
 
   function handleDragOver(event: DragEvent) {
-    if (!editMode || !isDesktop) return;
+    if (disabled || !editMode || !isDesktop) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
   }
 
   function handleDrop(event: DragEvent) {
-    if (!editMode || !isDesktop) return;
+    if (disabled || !editMode || !isDesktop) return;
     event.preventDefault();
     onDrop(index);
   }
@@ -99,7 +103,7 @@
     editMode && 'ring-1 ring-primary/15',
     cardSpan
   )}
-  draggable={editMode && isDesktop}
+  draggable={!disabled && editMode && isDesktop}
   ondragstart={handleDragStart}
   ondragover={handleDragOver}
   ondrop={handleDrop}
@@ -112,6 +116,7 @@
           class="mt-0.5 hidden size-8 shrink-0 cursor-grab place-items-center rounded-md text-muted-foreground hover:bg-muted md:grid"
           title="Drag to reorder"
           aria-label="Drag to reorder"
+          {disabled}
         >
           <GripVertical size={16} />
         </button>
@@ -137,6 +142,7 @@
       class="icon-button shrink-0"
       title="Edit chart"
       aria-label="Edit chart"
+      {disabled}
       onclick={() => onEdit(chart)}
     >
       <Pencil size={16} />
@@ -154,7 +160,7 @@
           class="icon-button"
           title="Move up"
           aria-label="Move up"
-          disabled={!canMoveUp}
+          disabled={disabled || !canMoveUp}
           onclick={() => onMove(index, index - 1)}
         >
           <ArrowUp size={16} />
@@ -164,7 +170,7 @@
           class="icon-button"
           title="Move down"
           aria-label="Move down"
-          disabled={!canMoveDown}
+          disabled={disabled || !canMoveDown}
           onclick={() => onMove(index, index + 1)}
         >
           <ArrowDown size={16} />
@@ -183,6 +189,7 @@
             title={`${option.label} card`}
             aria-label={`${option.label} card`}
             aria-pressed={chart.size === option.value}
+            {disabled}
             onclick={() => onResize(chart, option.value)}
           >
             <Icon size={15} />
@@ -196,6 +203,7 @@
           class="icon-button"
           title="Duplicate"
           aria-label="Duplicate"
+          {disabled}
           onclick={() => onDuplicate(chart)}
         >
           <Copy size={16} />
@@ -205,6 +213,7 @@
           class="icon-button danger"
           title="Delete"
           aria-label="Delete"
+          {disabled}
           onclick={() => onDelete(chart)}
         >
           <Trash2 size={16} />
@@ -218,5 +227,6 @@
     {chart}
     type={chart.type}
     currency={data?.budget.currencyFormat ?? null}
+    loading={dataLoading}
   />
 </article>

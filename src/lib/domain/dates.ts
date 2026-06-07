@@ -12,7 +12,7 @@ import {
   subMonths,
   subYears
 } from 'date-fns';
-import type { ChartConfig, DatePreset } from '$lib/app/chart-config';
+import type { ChartConfig } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
 import type { ISODate, TransactionEntity } from './types';
 

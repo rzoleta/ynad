@@ -10,6 +10,7 @@
     canRefresh,
     isRefreshing,
     editMode,
+    disabled = false,
     onRefresh,
     onToggleEdit,
     onAddChart
@@ -19,6 +20,7 @@
     canRefresh: boolean;
     isRefreshing: boolean;
     editMode: boolean;
+    disabled?: boolean;
     onRefresh: () => void | Promise<void>;
     onToggleEdit: () => void;
     onAddChart: (type: ChartType) => void;
@@ -47,7 +49,13 @@
       <a class="icon-button" title="Settings" aria-label="Settings" href={resolve('/app/settings')}>
         <Settings size={17} />
       </a>
-      <button type="button" class="button secondary" aria-pressed={editMode} onclick={onToggleEdit}>
+      <button
+        type="button"
+        class="button secondary"
+        aria-pressed={editMode}
+        {disabled}
+        onclick={onToggleEdit}
+      >
         {#if editMode}
           <Check size={17} />
           Done
@@ -56,7 +64,12 @@
           Edit dashboard
         {/if}
       </button>
-      <button type="button" class="button primary" onclick={() => onAddChart('spending')}>
+      <button
+        type="button"
+        class="button primary"
+        {disabled}
+        onclick={() => onAddChart('spending')}
+      >
         <Plus size={17} />
         Add chart
       </button>
