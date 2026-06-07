@@ -13,7 +13,7 @@ export async function ynabFetch<T>(token: string, path: string): Promise<T> {
     response = await fetch(`${API_BASE}${path}`, {
       headers: { authorization: `Bearer ${token}` }
     });
-  } catch (error) {
+  } catch {
     throw new YnabClientError({
       code: 'network-unavailable',
       message: 'Network unavailable.',
@@ -47,15 +47,6 @@ export async function ynabFetch<T>(token: string, path: string): Promise<T> {
   }
 
   if (!response.ok) {
-    let errorBody: unknown;
-    try {
-      errorBody = await response.clone().json();
-    } catch {
-      errorBody = await response
-        .clone()
-        .text()
-        .catch(() => null);
-    }
     throw new YnabClientError({
       code: 'fetch-error',
       message: `YNAB request failed (${response.status}).`,

@@ -3,6 +3,8 @@ import type { NormalizedBudgetData } from '$lib/domain/types';
 import { ynabFetch } from './client';
 import type { YnabAccount, YnabBudget, YnabCategoryGroup, YnabTransaction } from './types';
 
+const ALL_TRANSACTIONS_SINCE_DATE = '1900-01-01';
+
 export type YnabRawSnapshot = {
   budget: YnabBudget;
   budgets: YnabBudget[];
@@ -38,7 +40,7 @@ export async function fetchRawBudgetSnapshot(
     ),
     ynabFetch<{ data: { transactions: YnabTransaction[]; server_knowledge?: number } }>(
       token,
-      `/budgets/${budgetId}/transactions`
+      `/budgets/${budgetId}/transactions?since_date=${ALL_TRANSACTIONS_SINCE_DATE}`
     )
   ]);
 
