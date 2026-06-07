@@ -128,6 +128,11 @@
     }).format(value / 1000);
   }
 
+  function formatTooltipValue(value: unknown) {
+    if (typeof value !== 'number') return String(value ?? '');
+    return formatMilliunits(value, displayCurrency);
+  }
+
   function formatXTick(value: unknown) {
     const label = String(value);
     return label.length > 12 ? `${label.slice(0, 12)}...` : label;
@@ -159,6 +164,7 @@
               {yDomain}
               series={[{ key: 'value', label: chart.title, color: seriesColor }]}
               props={{
+                tooltip: { item: { format: formatTooltipValue } },
                 xAxis: { format: formatXTick },
                 yAxis: { format: formatAxisValue }
               }}
@@ -174,6 +180,7 @@
               innerRadius={0.58}
               padAngle={0.02}
               labels={true}
+              props={{ tooltip: { item: { format: formatTooltipValue } } }}
             />
           {:else}
             <BarChart
@@ -186,6 +193,7 @@
               {yDomain}
               series={[{ key: 'value', label: chart.title, color: seriesColor }]}
               props={{
+                tooltip: { item: { format: formatTooltipValue } },
                 xAxis: { format: formatXTick },
                 yAxis: { format: formatAxisValue }
               }}
