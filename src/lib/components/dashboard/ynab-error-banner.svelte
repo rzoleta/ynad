@@ -23,6 +23,7 @@
 <div
   class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-danger/40 bg-danger/10 p-4 text-danger"
   role="alert"
+  aria-live="polite"
 >
   <div class="flex min-w-0 items-start gap-3">
     <AlertTriangle class="mt-0.5 shrink-0" size={19} />
@@ -38,7 +39,13 @@
     {:else if code === 'budget-unavailable'}
       <a class="button secondary" href={resolve('/app/settings')}>Settings</a>
     {:else}
-      <button type="button" class="button secondary" disabled={!canRefresh} onclick={onRefresh}>
+      <button
+        type="button"
+        class="button secondary"
+        title="Refresh YNAB data"
+        disabled={!canRefresh}
+        onclick={onRefresh}
+      >
         <RefreshCcw size={16} />
         Refresh
       </button>

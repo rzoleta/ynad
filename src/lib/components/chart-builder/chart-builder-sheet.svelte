@@ -1,5 +1,6 @@
 <script lang="ts">
   import { X } from '@lucide/svelte';
+  import { tick } from 'svelte';
   import {
     isChartPreviewable,
     normalizeChartForType,
@@ -37,6 +38,9 @@
     onCancel: () => void;
   } = $props();
 
+  let dialogElement = $state<HTMLElement | null>(null);
+  let previouslyFocusedElement: HTMLElement | null = null;
+
   const canSave = $derived(Boolean(chart && isChartPreviewable(chart)));
   const accounts = $derived(data?.accounts ?? []);
   const categoryGroups = $derived(data?.categoryGroups ?? []);
@@ -56,10 +60,69 @@
     onCancel();
   }
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (!open || !chart) return;
-    if (event.key === 'Escape') cancel();
+  function getFocusableElements() {
+    if (!dialogElement) return [];
+
+    return Array.from(
+      dialogElement.querySelectorAll<HTMLElement>(
+        [
+          'a[href]',
+          'button:not([disabled])',
+          'input:not([disabled])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          '[tabindex]:not([tabindex="-1"])'
+        ].join(',')
+      )
+    ).filter((element) => !element.hasAttribute('disabled') && element.offsetParent !== null);
   }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (!open) return;
+    if (event.key === 'Escape') {
+      cancel();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    const focusableElements = getFocusableElements();
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusableElements[0];
+    const last = focusableElements[focusableElements.length - 1];
+    const activeElement = document.activeElement;
+
+    if (event.shiftKey && activeElement === first) {
+      event.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!event.shiftKey && activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  $effect(() => {
+    if (!open) return;
+
+    previouslyFocusedElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    tick().then(() => {
+      getFocusableElements()[0]?.focus();
+    });
+
+    return () => {
+      previouslyFocusedElement?.focus();
+      previouslyFocusedElement = null;
+    };
+  });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -71,17 +134,21 @@
     onclick={cancel}
   ></button>
   <div
+    bind:this={dialogElement}
     class="fixed inset-0 z-50 flex flex-col border-l border-border bg-card shadow-2xl lg:left-auto lg:w-[min(1120px,92vw)]"
     role="dialog"
     aria-modal="true"
-    aria-label="Chart builder"
+    aria-labelledby="chart-builder-title"
+    aria-describedby="chart-builder-description"
   >
     <div class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
       <div>
-        <h2 class="text-xl font-semibold">Chart builder</h2>
-        <p class="mt-1 text-sm text-muted-foreground">{chart.title}</p>
+        <h2 id="chart-builder-title" class="text-xl font-semibold">Chart builder</h2>
+        <p id="chart-builder-description" class="mt-1 text-sm text-muted-foreground">
+          {chart.title}
+        </p>
       </div>
-      <button class="icon-button" title="Close" onclick={cancel}>
+      <button class="icon-button" title="Close" aria-label="Close chart builder" onclick={cancel}>
         <X size={17} />
       </button>
     </div>

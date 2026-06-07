@@ -45,8 +45,9 @@
         YNAD
       </h1>
       <p class="mt-4 max-w-2xl text-xl leading-8 text-muted-foreground">
-        You Need A Dashboard. Build clean, personal finance dashboards from your YNAB data without
-        creating a YNAD account or storing budget data on our servers.
+        You Need A Dashboard. Build clean, personal finance dashboards from live YNAB data without
+        creating a YNAD account. YNAD stores your connection, selected budget, settings, and chart
+        layout only in this browser.
       </p>
       <div class="mt-8 flex flex-wrap gap-3">
         <button

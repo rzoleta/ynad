@@ -15,8 +15,16 @@
       by, or sponsored by YNAB.
     </p>
     <p>
+      YNAD requests read-only API access. It can fetch budget data for dashboard visualization, but
+      it does not create, update, or delete YNAB budget data.
+    </p>
+    <p>
       YNAD is for personal visualization and analysis only. It is not financial, tax, legal, or
       investment advice.
+    </p>
+    <p>
+      Use Disconnect YNAB to remove the browser-local token and selected budget for this browser.
+      Dashboard configuration and settings are also browser-local.
     </p>
   </div>
 </main>

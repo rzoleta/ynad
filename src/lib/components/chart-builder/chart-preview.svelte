@@ -22,11 +22,12 @@
 
     return computeChart(chart, data, weekStart);
   });
+  const previewTitleId = $derived(`chart-preview-title-${chart.id}`);
 </script>
 
-<div>
+<section aria-labelledby={previewTitleId}>
   <div class="flex items-center justify-between gap-3">
-    <p class="text-sm font-medium">Preview</p>
+    <h3 id={previewTitleId} class="text-sm font-medium">Preview</h3>
     <span class="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
       {chart.type}
     </span>
@@ -38,4 +39,4 @@
     currency={data?.budget.currencyFormat ?? null}
     class="mt-3"
   />
-</div>
+</section>

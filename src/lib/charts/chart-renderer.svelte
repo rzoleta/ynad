@@ -89,6 +89,34 @@
   const excludedLabels = $derived(
     result.status === 'series' ? (result.excluded?.map((item) => item.label).join(', ') ?? '') : ''
   );
+  const summaryId = $derived(`chart-summary-${chart.id}`);
+  const chartAriaLabel = $derived.by(() => {
+    const title = chart.title || `${type} chart`;
+
+    if (result.status === 'number') {
+      return `${title}. ${result.label}: ${formatMilliunits(result.valueMilliunits, displayCurrency)}.`;
+    }
+
+    if (result.status === 'series') {
+      const pointSummary = points
+        .slice(0, 5)
+        .map((point) => `${point.label} ${formatMilliunits(point.value, displayCurrency)}`)
+        .join(', ');
+      const moreCount = points.length - 5;
+      const moreSummary = moreCount > 0 ? `, plus ${moreCount} more` : '';
+      const excludedSummary =
+        result.excluded && result.excluded.length > 0
+          ? ` ${result.excluded.length} non-positive pie ${result.excluded.length === 1 ? 'slice was' : 'slices were'} excluded.`
+          : '';
+
+      return `${title}. ${visual} chart with ${points.length} ${points.length === 1 ? 'point' : 'points'}${
+        pointSummary ? `: ${pointSummary}${moreSummary}.` : '.'
+      }${excludedSummary}`;
+    }
+
+    if (result.status === 'error') return `${title}. Chart could not load. ${result.message}`;
+    return `${title}. No matching data. ${result.message}`;
+  });
 
   function formatAxisValue(value: number) {
     return Intl.NumberFormat(undefined, {
@@ -115,7 +143,8 @@
     </div>
   {:else if result.status === 'series'}
     <div class="space-y-3">
-      <div class="rounded-md bg-background px-2 py-4">
+      <p id={summaryId} class="sr-only">{chartAriaLabel}</p>
+      <div class="rounded-md bg-background px-2 py-4" role="img" aria-labelledby={summaryId}>
         <Chart.Container {config} class="min-h-[240px]">
           {#if visual === 'line'}
             <LineChart
