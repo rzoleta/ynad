@@ -4,10 +4,12 @@
 
   let {
     chart,
-    onChange
+    onChange,
+    compact = false
   }: {
     chart: ChartConfig;
     onChange: (chart: ChartConfig) => void;
+    compact?: boolean;
   } = $props();
 
   const options = [
@@ -29,14 +31,16 @@
 </script>
 
 <div class="field">
-  <span>Period</span>
+  <span class={compact ? 'text-xs text-muted-foreground' : undefined}>Period</span>
   <Select.Root
     type="single"
     value={chart.granularity ?? ''}
     {disabled}
     onValueChange={setGranularity}
   >
-    <Select.Trigger class="w-full">{label}</Select.Trigger>
+    <Select.Trigger class={compact ? 'w-[6.75rem]' : 'w-full'} size={compact ? 'sm' : 'default'}>
+      {label}
+    </Select.Trigger>
     <Select.Content>
       {#each options as option (option.value)}
         <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>

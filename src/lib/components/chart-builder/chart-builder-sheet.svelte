@@ -135,7 +135,7 @@
   ></button>
   <div
     bind:this={dialogElement}
-    class="fixed inset-0 z-50 flex flex-col border-l border-border bg-card shadow-2xl lg:left-auto lg:w-[min(1120px,92vw)]"
+    class="fixed inset-0 z-50 flex flex-col border-l border-border bg-card shadow-2xl lg:left-auto lg:w-[min(1680px,96vw)]"
     role="dialog"
     aria-modal="true"
     aria-labelledby="chart-builder-title"
@@ -154,7 +154,7 @@
     </div>
 
     <div
-      class="grid flex-1 gap-0 overflow-y-auto lg:grid-cols-[minmax(360px,1fr)_minmax(340px,0.82fr)]"
+      class="grid flex-1 gap-0 overflow-y-auto lg:grid-cols-[minmax(360px,420px)_minmax(720px,1fr)]"
     >
       <form class="min-w-0 divide-y divide-border" onsubmit={(event) => event.preventDefault()}>
         <section class="space-y-4 p-5">
@@ -167,16 +167,10 @@
         </section>
 
         <section class="space-y-4 p-5">
-          <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Date</h3>
-          <DateRangeControl {chart} onChange={updateDraft} />
-        </section>
-
-        <section class="space-y-4 p-5">
           <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
             Visualization
           </h3>
           <VisualizationControl {chart} onChange={updateDraft} />
-          <GranularityControl {chart} onChange={updateDraft} />
         </section>
 
         <section class="space-y-4 p-5">
@@ -198,6 +192,10 @@
 
       <div class="min-w-0 border-t border-border bg-background/65 p-5 lg:border-t-0 lg:border-l">
         <div class="lg:sticky lg:top-5">
+          <div class="mb-4 flex flex-wrap items-end justify-end gap-3">
+            <GranularityControl {chart} onChange={updateDraft} compact />
+            <DateRangeControl {chart} onChange={updateDraft} compact />
+          </div>
           <ChartPreview {chart} {data} {weekStart} />
         </div>
       </div>

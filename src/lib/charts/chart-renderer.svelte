@@ -16,6 +16,7 @@
     type,
     currency = null,
     loading = false,
+    size = 'default',
     class: className
   }: {
     result: ChartResult;
@@ -23,6 +24,7 @@
     type: ChartType;
     currency?: CurrencyFormat | null;
     loading?: boolean;
+    size?: 'default' | 'builder';
     class?: string;
   } = $props();
 
@@ -93,6 +95,10 @@
     result.status === 'series' ? (result.excluded?.map((item) => item.label).join(', ') ?? '') : ''
   );
   const summaryId = $derived(`chart-summary-${chart.id}`);
+  const frameHeightClass = $derived(size === 'builder' ? 'h-[56vh] min-h-[560px]' : 'h-48');
+  const chartHeightClass = $derived(
+    size === 'builder' ? 'min-h-[56vh] lg:min-h-[560px]' : 'min-h-[240px]'
+  );
   const chartAriaLabel = $derived.by(() => {
     const title = chart.title || `${type} chart`;
 
@@ -142,7 +148,7 @@
 
 <div class={cn('mt-5 min-h-48 overflow-hidden', className)}>
   {#if result.status === 'number'}
-    <div class="flex h-48 items-center rounded-md bg-background p-5">
+    <div class={cn('flex items-center rounded-md bg-background p-5', frameHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground capitalize">{result.label}</p>
         <p class="mt-2 text-4xl font-semibold break-words">
@@ -154,7 +160,7 @@
     <div class="space-y-3">
       <p id={summaryId} class="sr-only">{chartAriaLabel}</p>
       <div class="rounded-md bg-background px-2 py-4" role="img" aria-labelledby={summaryId}>
-        <Chart.Container {config} class="min-h-[240px]">
+        <Chart.Container {config} class={chartHeightClass}>
           {#if visual === 'line'}
             <AreaChart
               data={points}
@@ -220,7 +226,10 @@
     </div>
   {:else if loading}
     <div
-      class="grid h-48 place-items-center rounded-md bg-background p-5 text-center text-muted-foreground"
+      class={cn(
+        'grid place-items-center rounded-md bg-background p-5 text-center text-muted-foreground',
+        frameHeightClass
+      )}
       aria-live="polite"
       aria-busy="true"
     >
@@ -231,7 +240,10 @@
     </div>
   {:else if result.status === 'error'}
     <div
-      class="grid h-48 place-items-center rounded-md bg-danger/10 p-5 text-center text-danger"
+      class={cn(
+        'grid place-items-center rounded-md bg-danger/10 p-5 text-center text-danger',
+        frameHeightClass
+      )}
       role="alert"
     >
       <div>
@@ -240,7 +252,7 @@
       </div>
     </div>
   {:else if type === 'number'}
-    <div class="flex h-48 items-center rounded-md bg-background p-5">
+    <div class={cn('flex items-center rounded-md bg-background p-5', frameHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground">{result.message}</p>
         <p class="mt-2 text-4xl font-semibold">--</p>
@@ -248,7 +260,10 @@
     </div>
   {:else}
     <div
-      class="grid h-48 place-items-center rounded-md bg-background p-5 text-center text-muted-foreground"
+      class={cn(
+        'grid place-items-center rounded-md bg-background p-5 text-center text-muted-foreground',
+        frameHeightClass
+      )}
     >
       <div>
         <CircleDollarSign class="mx-auto mb-3 text-primary" size={28} />

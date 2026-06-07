@@ -5,10 +5,12 @@
 
   let {
     chart,
-    onChange
+    onChange,
+    compact = false
   }: {
     chart: ChartConfig;
     onChange: (chart: ChartConfig) => void;
+    compact?: boolean;
   } = $props();
 
   const label = $derived(
@@ -41,38 +43,44 @@
   }
 </script>
 
-<div class="field">
-  <span>Date range</span>
-  <Select.Root type="single" value={chart.dateRange.preset} onValueChange={setPreset}>
-    <Select.Trigger class="w-full">
-      <CalendarDays size={15} />
-      {label}
-    </Select.Trigger>
-    <Select.Content>
-      {#each datePresetOptions as option (option.value)}
-        <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
-      {/each}
-    </Select.Content>
-  </Select.Root>
+<div class={compact ? 'field min-w-0' : 'field'}>
+  <span class={compact ? 'text-xs text-muted-foreground' : undefined}>Date range</span>
+  <div class={compact ? 'flex flex-wrap items-end gap-2' : 'grid gap-2'}>
+    <Select.Root type="single" value={chart.dateRange.preset} onValueChange={setPreset}>
+      <Select.Trigger class={compact ? 'w-[12rem]' : 'w-full'} size={compact ? 'sm' : 'default'}>
+        <CalendarDays size={15} />
+        {label}
+      </Select.Trigger>
+      <Select.Content>
+        {#each datePresetOptions as option (option.value)}
+          <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
 
-  {#if chart.dateRange.preset === 'custom'}
-    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      <label class="field">
-        <span>From</span>
-        <input
-          type="date"
-          value={chart.dateRange.from}
-          oninput={(event) => setCustomDate('from', event)}
-        />
-      </label>
-      <label class="field">
-        <span>To</span>
-        <input
-          type="date"
-          value={chart.dateRange.to}
-          oninput={(event) => setCustomDate('to', event)}
-        />
-      </label>
-    </div>
-  {/if}
+    {#if chart.dateRange.preset === 'custom'}
+      <div
+        class={compact ? 'flex flex-wrap items-end gap-2' : 'grid grid-cols-1 gap-2 sm:grid-cols-2'}
+      >
+        <label class="field">
+          <span class={compact ? 'text-xs text-muted-foreground' : undefined}>From</span>
+          <input
+            class={compact ? 'w-[8.75rem]' : undefined}
+            type="date"
+            value={chart.dateRange.from}
+            oninput={(event) => setCustomDate('from', event)}
+          />
+        </label>
+        <label class="field">
+          <span class={compact ? 'text-xs text-muted-foreground' : undefined}>To</span>
+          <input
+            class={compact ? 'w-[8.75rem]' : undefined}
+            type="date"
+            value={chart.dateRange.to}
+            oninput={(event) => setCustomDate('to', event)}
+          />
+        </label>
+      </div>
+    {/if}
+  </div>
 </div>

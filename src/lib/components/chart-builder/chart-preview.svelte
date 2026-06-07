@@ -37,6 +37,7 @@
     {chart}
     type={chart.type}
     currency={data?.budget.currencyFormat ?? null}
+    size="builder"
     class="mt-3"
   />
 </section>
