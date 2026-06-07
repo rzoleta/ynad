@@ -165,7 +165,7 @@
           <VisualizationControl {chart} onChange={updateDraft} />
         </section>
 
-        <section class="space-y-4 p-5">
+        <section class="space-y-6 p-5">
           <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
             Filters
           </h3>
