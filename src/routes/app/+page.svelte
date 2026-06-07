@@ -12,7 +12,6 @@
   } from '@lucide/svelte';
   import { createQuery } from '@tanstack/svelte-query';
   import { onMount } from 'svelte';
-  import * as Select from '$lib/components/ui/select/index.js';
   import {
     formatRateLimitPause,
     getRateLimitPauseUntil,
@@ -34,6 +33,7 @@
   import { getEffectiveWeekStart } from '$lib/app/settings';
   import { computeChart, type ChartResult } from '$lib/charts/compute';
   import ChartRenderer from '$lib/charts/chart-renderer.svelte';
+  import ChartBuilderSheet from '$lib/components/chart-builder/chart-builder-sheet.svelte';
   import { debugFetch } from '$lib/debug';
   import { cn, formatDateTime } from '$lib/utils';
   import { fetchNormalizedBudgetSnapshot } from '$lib/ynab/snapshot';
@@ -53,37 +53,6 @@
   let now = $state(Date.now());
   let draggedIndex = $state<number | null>(null);
 
-  const chartTypeOptions = [
-    { value: 'balance', label: 'Balance' },
-    { value: 'spending', label: 'Spending' },
-    { value: 'income', label: 'Income' },
-    { value: 'number', label: 'Number' }
-  ];
-  const chartSizeOptions = [
-    { value: 'small', label: 'Small' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'large', label: 'Large' }
-  ];
-  const dateRangeOptions = [
-    { value: 'this-month', label: 'This Month' },
-    { value: 'this-year', label: 'This Year' },
-    { value: 'last-month', label: 'Last Month' },
-    { value: 'last-year', label: 'Last Year' },
-    { value: 'last-12-months', label: 'Last 12 Months' }
-  ];
-  const visualizationOptions = [
-    { value: 'line', label: 'Line' },
-    { value: 'bar', label: 'Bar' },
-    { value: 'pie', label: 'Pie' }
-  ];
-  const granularityOptions = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'yearly', label: 'Yearly' }
-  ];
-  const categoryOptions = [{ value: 'all', label: 'All categories' }];
-  const payeeOptions = [{ value: 'all', label: 'All payees from loaded transactions' }];
   const dashboardSubtitle = $derived(
     connectionStatus === 'connected'
       ? 'Live dashboard'
@@ -91,10 +60,6 @@
         ? 'Reconnect YNAB to refresh'
         : 'Connect YNAB to start'
   );
-
-  function optionLabel(options: { value: string; label: string }[], value: string | undefined) {
-    return options.find((option) => option.value === value)?.label ?? '';
-  }
 
   const budgetSelectionQuery = createQuery(() => ({
     queryKey: ['ynab', 'budget-selection', token],
@@ -128,7 +93,6 @@
   const isRefreshing = $derived(budgetSelectionQuery.isFetching || snapshotQuery.isFetching);
   const dashboardError = $derived(snapshotQuery.error ?? budgetSelectionQuery.error ?? null);
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
-  const editingChartPreviewable = $derived(editingChart ? isChartPreviewable(editingChart) : false);
 
   onMount(() => {
     const connection = readYnabConnectionState();
@@ -213,55 +177,23 @@
     editorOpen = true;
   }
 
-  function updateEditingChart(next: ChartConfig) {
-    editingChart = normalizeChartForType(next);
+  function updateEditingChart(chart: ChartConfig) {
+    editingChart = normalizeChartForType(chart);
   }
 
-  function setEditingChartType(type: string) {
-    if (!editingChart) return;
-    updateEditingChart({ ...editingChart, type: type as ChartType });
-  }
-
-  function setEditingChartSize(size: string) {
-    if (!editingChart) return;
-    updateEditingChart({ ...editingChart, size: size as ChartConfig['size'] });
-  }
-
-  function setEditingDatePreset(preset: string) {
-    if (!editingChart) return;
-    updateEditingChart({
-      ...editingChart,
-      dateRange: { preset } as ChartConfig['dateRange']
-    });
-  }
-
-  function setEditingVisualization(visualization: string) {
-    if (!editingChart) return;
-    updateEditingChart({
-      ...editingChart,
-      visualization: visualization as NonNullable<ChartConfig['visualization']>
-    });
-  }
-
-  function setEditingGranularity(granularity: string) {
-    if (!editingChart) return;
-    updateEditingChart({
-      ...editingChart,
-      granularity: granularity as NonNullable<ChartConfig['granularity']>
-    });
-  }
-
-  function saveChart() {
-    if (!editingChart) return;
-    const nextChart = normalizeChartForType(editingChart);
-    if (!isChartPreviewable(nextChart)) return;
-
+  function saveChart(chart: ChartConfig) {
+    const nextChart = normalizeChartForType(chart);
     const existing = charts.some((chart) => chart.id === nextChart.id);
     persist(
       existing
         ? charts.map((chart) => (chart.id === nextChart.id ? nextChart : chart))
         : [...charts, nextChart]
     );
+    editorOpen = false;
+    editingChart = null;
+  }
+
+  function closeEditor() {
     editorOpen = false;
     editingChart = null;
   }
@@ -507,170 +439,13 @@
     {/if}
   </section>
 
-  {#if editorOpen && editingChart}
-    <button
-      class="fixed inset-0 z-40 cursor-default bg-black/35"
-      aria-label="Close chart editor"
-      onclick={() => (editorOpen = false)}
-    ></button>
-    <aside
-      class="fixed inset-y-0 right-0 z-50 flex w-full max-w-5xl flex-col border-l border-border bg-card shadow-2xl"
-    >
-      <div class="border-b border-border p-5">
-        <h2 class="text-xl font-semibold">
-          {charts.some((chart) => chart.id === editingChart?.id) ? 'Edit chart' : 'New chart'}
-        </h2>
-        <p class="text-sm text-muted-foreground">
-          Grouped form with live preview from current data.
-        </p>
-      </div>
-      <div
-        class="grid flex-1 gap-5 overflow-y-auto p-5 lg:grid-cols-[minmax(320px,1fr)_minmax(280px,0.9fr)] lg:items-start"
-      >
-        <div class="space-y-5">
-          <label class="field">
-            <span>Title</span>
-            <input
-              bind:value={editingChart.title}
-              oninput={() => (editingChart!.titleEdited = true)}
-            />
-          </label>
-          <label class="field">
-            <span>Type</span>
-            <Select.Root
-              type="single"
-              value={editingChart.type}
-              onValueChange={setEditingChartType}
-            >
-              <Select.Trigger class="w-full">
-                {optionLabel(chartTypeOptions, editingChart.type)}
-              </Select.Trigger>
-              <Select.Content>
-                {#each chartTypeOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
-                  >
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </label>
-          <label class="field">
-            <span>Size</span>
-            <Select.Root
-              type="single"
-              value={editingChart.size}
-              onValueChange={setEditingChartSize}
-            >
-              <Select.Trigger class="w-full">
-                {optionLabel(chartSizeOptions, editingChart.size)}
-              </Select.Trigger>
-              <Select.Content>
-                {#each chartSizeOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
-                  >
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </label>
-          <label class="field">
-            <span>Date range</span>
-            <Select.Root
-              type="single"
-              value={editingChart.dateRange.preset}
-              onValueChange={setEditingDatePreset}
-            >
-              <Select.Trigger class="w-full">
-                {optionLabel(dateRangeOptions, editingChart.dateRange.preset)}
-              </Select.Trigger>
-              <Select.Content>
-                {#each dateRangeOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
-                  >
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </label>
-          <label class="field">
-            <span>Visualization</span>
-            <Select.Root
-              type="single"
-              value={editingChart.visualization}
-              onValueChange={setEditingVisualization}
-              disabled={editingChart.type === 'number'}
-            >
-              <Select.Trigger class="w-full">
-                {optionLabel(visualizationOptions, editingChart.visualization)}
-              </Select.Trigger>
-              <Select.Content>
-                {#each visualizationOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
-                  >
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </label>
-          <label class="field">
-            <span>Granularity</span>
-            <Select.Root
-              type="single"
-              value={editingChart.granularity}
-              onValueChange={setEditingGranularity}
-              disabled={editingChart.type === 'number' || editingChart.visualization === 'pie'}
-            >
-              <Select.Trigger class="w-full">
-                {optionLabel(granularityOptions, editingChart.granularity)}
-              </Select.Trigger>
-              <Select.Content>
-                {#each granularityOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
-                  >
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </label>
-          <label class="field">
-            <span>Categories</span>
-            <Select.Root type="single" value="all" disabled={editingChart.type !== 'spending'}>
-              <Select.Trigger class="w-full">All categories</Select.Trigger>
-              <Select.Content>
-                {#each categoryOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
-                  >
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </label>
-          <label class="field">
-            <span>Payees</span>
-            <Select.Root
-              type="single"
-              value="all"
-              disabled={editingChart.type !== 'spending' && editingChart.type !== 'income'}
-            >
-              <Select.Trigger class="w-full">All payees from loaded transactions</Select.Trigger>
-              <Select.Content>
-                {#each payeeOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item
-                  >
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </label>
-        </div>
-        <div class="rounded-lg border border-border bg-background p-4 lg:sticky lg:top-5">
-          <p class="mb-3 text-sm font-medium">Preview</p>
-          <ChartRenderer
-            result={resultFor(editingChart)}
-            chart={editingChart}
-            type={editingChart.type}
-          />
-        </div>
-      </div>
-      <div class="flex justify-end gap-2 border-t border-border p-5">
-        <button class="button secondary" onclick={() => (editorOpen = false)}>Cancel</button>
-        <button class="button primary" disabled={!editingChartPreviewable} onclick={saveChart}
-          >Save</button
-        >
-      </div>
-    </aside>
-  {/if}
+  <ChartBuilderSheet
+    open={editorOpen}
+    chart={editingChart}
+    data={snapshotQuery.data ?? null}
+    weekStart={getEffectiveWeekStart()}
+    onChange={updateEditingChart}
+    onSave={saveChart}
+    onCancel={closeEditor}
+  />
 </main>
