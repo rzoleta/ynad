@@ -162,13 +162,6 @@
             Basics
           </h3>
           <ChartTypeControl {chart} onChange={updateDraft} />
-          <ChartSizeControl {chart} onChange={updateDraft} />
-        </section>
-
-        <section class="space-y-4 p-5">
-          <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            Visualization
-          </h3>
           <VisualizationControl {chart} onChange={updateDraft} />
         </section>
 
@@ -192,8 +185,9 @@
       <div class="min-w-0 border-t border-border bg-background/65 p-5 lg:border-t-0 lg:border-l">
         <div class="lg:sticky lg:top-5">
           <div class="mb-4 flex flex-wrap items-end gap-3">
-            <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 flex-1 flex-row gap-5">
               <TitleField {chart} onChange={updateDraft} compact />
+              <ChartSizeControl {chart} onChange={updateDraft} />
             </div>
             <GranularityControl {chart} onChange={updateDraft} compact />
             <DateRangeControl {chart} onChange={updateDraft} compact />
