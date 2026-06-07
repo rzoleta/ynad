@@ -1,4 +1,11 @@
 import { env } from '$env/dynamic/public';
+import { clearSelectedBudgetId as clearStoredSelectedBudgetId } from '$lib/app/budget-selection';
+
+export {
+  clearSelectedBudgetId,
+  readSelectedBudgetId,
+  writeSelectedBudgetId
+} from '$lib/app/budget-selection';
 
 export type YnabToken = {
   accessToken: string;
@@ -7,7 +14,6 @@ export type YnabToken = {
 };
 
 const TOKEN_KEY = 'ynad.ynab-token';
-const BUDGET_KEY = 'ynad.selected-budget';
 const OAUTH_KEY = 'ynad.oauth';
 
 export function readToken(): YnabToken | null {
@@ -29,16 +35,8 @@ export function writeToken(token: YnabToken) {
 
 export function clearYnabConnection() {
   localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(BUDGET_KEY);
+  clearStoredSelectedBudgetId();
   sessionStorage.removeItem(OAUTH_KEY);
-}
-
-export function readSelectedBudgetId() {
-  return localStorage.getItem(BUDGET_KEY);
-}
-
-export function writeSelectedBudgetId(budgetId: string) {
-  localStorage.setItem(BUDGET_KEY, budgetId);
 }
 
 export async function startYnabOAuth() {

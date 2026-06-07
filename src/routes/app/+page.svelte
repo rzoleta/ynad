@@ -21,6 +21,7 @@
     shouldRetryYnabQuery,
     type YnabConnectionState
   } from '$lib/app/app-state';
+  import { fetchBudgetSelectionState } from '$lib/app/budget-selection';
   import {
     getChartMetadata,
     createDefaultChart,
@@ -33,7 +34,6 @@
   import ChartRenderer from '$lib/charts/chart-renderer.svelte';
   import { debugFetch } from '$lib/debug';
   import { cn, formatDateTime } from '$lib/utils';
-  import { DEFAULT_BUDGET_ID } from '$lib/ynab/client';
   import { fetchNormalizedBudgetSnapshot } from '$lib/ynab/snapshot';
   import { getYnabErrorCode, getYnabErrorMessage } from '$lib/ynab/errors';
   import { startYnabOAuth } from '$lib/ynab/auth';
@@ -94,6 +94,19 @@
     return options.find((option) => option.value === value)?.label ?? '';
   }
 
+  const budgetSelectionQuery = createQuery(() => ({
+    queryKey: ['ynab', 'budget-selection', token],
+    queryFn: async () => {
+      debugFetch('query:budget-selection:fn', {
+        hasToken: Boolean(token)
+      });
+      if (!token) return null;
+      return fetchBudgetSelectionState(token);
+    },
+    enabled: Boolean(token),
+    retry: shouldRetryYnabQuery,
+    refetchOnWindowFocus: () => !isRateLimitPauseActive(rateLimitPauseUntil)
+  }));
   const snapshotQuery = createQuery<NormalizedBudgetData | null>(() => ({
     queryKey: ['ynab', 'snapshot', token, budgetId],
     queryFn: async () => {
@@ -109,15 +122,17 @@
     refetchOnWindowFocus: () => !isRateLimitPauseActive(rateLimitPauseUntil)
   }));
   const lastUpdated = $derived(snapshotQuery.data?.fetchedAt ?? null);
-  const canRefresh = $derived(Boolean(token && budgetId));
+  const canRefresh = $derived(Boolean(token));
+  const isRefreshing = $derived(budgetSelectionQuery.isFetching || snapshotQuery.isFetching);
+  const dashboardError = $derived(snapshotQuery.error ?? budgetSelectionQuery.error ?? null);
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
 
   onMount(() => {
     const connection = readYnabConnectionState();
     token = connection.accessToken;
     connectionStatus = connection.status;
-    budgetId = connection.status === 'disconnected' ? null : DEFAULT_BUDGET_ID;
-    charts = readDashboard(budgetId).charts;
+    budgetId = null;
+    charts = readDashboard(null).charts;
     debugFetch('app:on-mount', {
       hasToken: Boolean(token),
       connectionStatus,
@@ -134,15 +149,28 @@
   });
 
   $effect(() => {
+    const selectedBudgetId = budgetSelectionQuery.data?.selectedBudgetId ?? null;
+    if (selectedBudgetId === budgetId) return;
+
+    budgetId = selectedBudgetId;
+    charts = readDashboard(selectedBudgetId).charts;
+    debugFetch('budget-selection:applied', {
+      budgetId: selectedBudgetId,
+      charts: charts.length
+    });
+  });
+
+  $effect(() => {
     debugFetch('state:snapshot-query', {
       hasToken: Boolean(token),
       connectionStatus,
       budgetId,
+      budgetSelectionStatus: budgetSelectionQuery.status,
       status: snapshotQuery.status,
       fetchStatus: snapshotQuery.fetchStatus,
-      hasError: Boolean(snapshotQuery.error),
-      errorCode: snapshotQuery.error ? getYnabErrorCode(snapshotQuery.error) : null,
-      error: snapshotQuery.error instanceof Error ? snapshotQuery.error.message : null,
+      hasError: Boolean(dashboardError),
+      errorCode: dashboardError ? getYnabErrorCode(dashboardError) : null,
+      error: dashboardError instanceof Error ? dashboardError.message : null,
       hasSnapshot: Boolean(snapshotQuery.data),
       accounts: snapshotQuery.data?.accounts.length ?? null,
       transactions: snapshotQuery.data?.transactions.length ?? null,
@@ -151,16 +179,16 @@
   });
 
   $effect(() => {
-    if (!snapshotQuery.error) {
+    if (!dashboardError) {
       lastRateLimitError = null;
       return;
     }
 
-    if (snapshotQuery.error === lastRateLimitError) return;
+    if (dashboardError === lastRateLimitError) return;
 
-    const pauseUntil = getRateLimitPauseUntil(snapshotQuery.error);
+    const pauseUntil = getRateLimitPauseUntil(dashboardError);
     if (pauseUntil) rateLimitPauseUntil = pauseUntil;
-    lastRateLimitError = snapshotQuery.error;
+    lastRateLimitError = dashboardError;
   });
 
   $effect(() => {
@@ -219,6 +247,7 @@
   async function refresh() {
     debugFetch('action:manual-refresh', { hasToken: Boolean(token), budgetId });
     rateLimitPauseUntil = null;
+    await budgetSelectionQuery.refetch();
     await snapshotQuery.refetch();
   }
 
@@ -227,8 +256,8 @@
       return { status: 'error', message: 'Reconnect YNAB to refresh this chart.' };
     }
 
-    if (!snapshotQuery.data && snapshotQuery.error) {
-      return { status: 'error', message: getDashboardErrorMessage(snapshotQuery.error) };
+    if (!snapshotQuery.data && dashboardError) {
+      return { status: 'error', message: getDashboardErrorMessage(dashboardError) };
     }
 
     return computeChart(chart, snapshotQuery.data ?? null, getEffectiveWeekStart());
@@ -277,7 +306,7 @@
         <button
           class="icon-button"
           title="Refresh YNAB data"
-          disabled={!canRefresh || snapshotQuery.isFetching}
+          disabled={!canRefresh || isRefreshing}
           onclick={refresh}
         >
           <RefreshCcw size={17} />
@@ -319,18 +348,18 @@
         </div>
         <button class="button primary" onclick={startYnabOAuth}>Reconnect YNAB</button>
       </div>
-    {:else if snapshotQuery.error}
+    {:else if dashboardError}
       <div
         class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-danger/40 bg-danger/10 p-4 text-danger"
       >
         <div>
-          <p class="font-medium">{getDashboardErrorTitle(snapshotQuery.error)}</p>
-          <p class="mt-1 text-sm">{getDashboardErrorMessage(snapshotQuery.error)}</p>
+          <p class="font-medium">{getDashboardErrorTitle(dashboardError)}</p>
+          <p class="mt-1 text-sm">{getDashboardErrorMessage(dashboardError)}</p>
         </div>
         <div class="flex flex-wrap gap-2">
-          {#if getYnabErrorCode(snapshotQuery.error) === 'reconnect-required'}
+          {#if getYnabErrorCode(dashboardError) === 'reconnect-required'}
             <button class="button primary" onclick={startYnabOAuth}>Reconnect YNAB</button>
-          {:else if getYnabErrorCode(snapshotQuery.error) === 'budget-unavailable'}
+          {:else if getYnabErrorCode(dashboardError) === 'budget-unavailable'}
             <a class="button secondary" href={resolve('/app/settings')}>Settings</a>
           {:else}
             <button class="button secondary" disabled={!canRefresh} onclick={refresh}>

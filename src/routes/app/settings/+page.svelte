@@ -2,10 +2,17 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { Moon, Sun, Unplug } from '@lucide/svelte';
+  import { createQuery } from '@tanstack/svelte-query';
   import { setMode, userPrefersMode } from 'mode-watcher';
   import { onMount } from 'svelte';
+  import {
+    readYnabConnectionState,
+    shouldRetryYnabQuery,
+    type YnabConnectionState
+  } from '$lib/app/app-state';
+  import { fetchBudgetSelectionState } from '$lib/app/budget-selection';
   import * as Select from '$lib/components/ui/select/index.js';
-  import { readYnabConnectionState, type YnabConnectionState } from '$lib/app/app-state';
+  import BudgetSelector from '$lib/components/settings/budget-selector.svelte';
   import {
     getEffectiveWeekStart,
     readSettings,
@@ -13,11 +20,10 @@
     type WeekStart
   } from '$lib/app/settings';
   import { clearYnabConnection, startYnabOAuth } from '$lib/ynab/auth';
-  import { DEFAULT_BUDGET_ID } from '$lib/ynab/client';
 
+  let token = $state<string | null>(null);
   let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
   let weekStart = $state<WeekStart>(7);
-  const tokenPresent = $derived(connectionStatus !== 'disconnected');
 
   const weekStartOptions = [
     { value: '1', label: 'Monday' },
@@ -32,9 +38,23 @@
   const weekStartLabel = $derived(
     weekStartOptions.find((option) => option.value === weekStartValue)?.label ?? 'Sunday'
   );
+  const budgetSelectionQuery = createQuery(() => ({
+    queryKey: ['ynab', 'budget-selection', token],
+    queryFn: async () => {
+      if (!token) return null;
+      return fetchBudgetSelectionState(token);
+    },
+    enabled: Boolean(token),
+    retry: shouldRetryYnabQuery
+  }));
+  const budgetSelectorLoading = $derived(
+    Boolean(token) && (budgetSelectionQuery.status === 'pending' || budgetSelectionQuery.isFetching)
+  );
 
   onMount(() => {
-    connectionStatus = readYnabConnectionState().status;
+    const connection = readYnabConnectionState();
+    connectionStatus = connection.status;
+    token = connection.accessToken;
     weekStart = getEffectiveWeekStart();
   });
 
@@ -102,6 +122,17 @@
       </label>
     </div>
 
+    {#if connectionStatus === 'connected'}
+      <div class="rounded-lg border border-border bg-card p-5">
+        <BudgetSelector
+          budgets={budgetSelectionQuery.data?.budgets ?? []}
+          selectedBudgetId={budgetSelectionQuery.data?.selectedBudgetId ?? null}
+          loading={budgetSelectorLoading}
+          error={budgetSelectionQuery.error}
+        />
+      </div>
+    {/if}
+
     <div class="rounded-lg border border-border bg-card p-5">
       <h2 class="text-lg font-semibold">YNAB connection</h2>
       <p class="mt-1 text-sm text-muted-foreground">
@@ -110,9 +141,6 @@
           : connectionStatus === 'expired'
             ? 'The YNAB token in this browser has expired.'
             : 'YNAB is not connected.'}
-      </p>
-      <p class="mt-2 text-xs text-muted-foreground">
-        Selected budget: {tokenPresent ? DEFAULT_BUDGET_ID : 'None'}
       </p>
       <div class="mt-4 flex flex-wrap gap-2">
         {#if connectionStatus === 'expired'}
