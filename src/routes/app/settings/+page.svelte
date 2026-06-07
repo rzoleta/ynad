@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { Moon, Sun, Unplug } from '@lucide/svelte';
-  import { createQuery } from '@tanstack/svelte-query';
+  import { createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { setMode, userPrefersMode } from 'mode-watcher';
   import { onMount } from 'svelte';
   import {
@@ -11,6 +11,7 @@
     type YnabConnectionState
   } from '$lib/app/app-state';
   import { fetchBudgetSelectionState } from '$lib/app/budget-selection';
+  import { clearLocalUserData } from '$lib/app/local-user-data';
   import * as Select from '$lib/components/ui/select/index.js';
   import BudgetSelector from '$lib/components/settings/budget-selector.svelte';
   import {
@@ -19,11 +20,12 @@
     writeSettings,
     type WeekStart
   } from '$lib/app/settings';
-  import { clearYnabConnection, startYnabOAuth } from '$lib/ynab/auth';
+  import { startYnabOAuth } from '$lib/ynab/auth';
 
   let token = $state<string | null>(null);
   let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
   let weekStart = $state<WeekStart>(7);
+  const queryClient = useQueryClient();
 
   const weekStartOptions = [
     { value: '1', label: 'Monday' },
@@ -64,8 +66,9 @@
   }
 
   async function disconnect() {
-    if (!confirm('Disconnect YNAB on this browser?')) return;
-    clearYnabConnection();
+    if (!confirm('Disconnect YNAB and delete all local YNAD data on this browser?')) return;
+    clearLocalUserData();
+    queryClient.clear();
     await goto(resolve('/'));
   }
 </script>
