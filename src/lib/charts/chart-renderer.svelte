@@ -1,5 +1,6 @@
 <script lang="ts">
   import { scaleBand, scaleOrdinal } from 'd3-scale';
+  import { curveMonotoneX } from 'd3-shape';
   import { BarChart, LineChart, PieChart } from 'layerchart';
   import { CircleDollarSign, LoaderCircle } from '@lucide/svelte';
   import * as Chart from '$lib/components/ui/chart';
@@ -165,6 +166,12 @@
               series={[{ key: 'value', label: chart.title, color: seriesColor }]}
               props={{
                 tooltip: { item: { format: formatTooltipValue } },
+                spline: {
+                  curve: curveMonotoneX,
+                  strokeWidth: 3,
+                  'stroke-linecap': 'round',
+                  'stroke-linejoin': 'round'
+                },
                 xAxis: { format: formatXTick },
                 yAxis: { format: formatAxisValue }
               }}
