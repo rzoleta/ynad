@@ -126,7 +126,7 @@
           <h2 class="min-w-0 font-semibold break-words">{chart.title}</h2>
         </div>
         <p class="mt-1 text-xs leading-5 text-muted-foreground">
-          {getChartMetadata(chart, data ?? undefined)}
+          {getChartMetadata(chart)}
         </p>
       </div>
     </div>

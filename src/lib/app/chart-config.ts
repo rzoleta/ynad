@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import type { NormalizedBudgetData } from '$lib/domain/types';
-import { UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categories';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -201,39 +199,13 @@ export function maybeUpdateGeneratedTitle(chart: ChartConfig): ChartConfig {
   return { ...chart, title: getGeneratedTitle(chart) };
 }
 
-export function getChartMetadata(chart: ChartConfig, data?: NormalizedBudgetData): string {
+export function getChartMetadata(chart: ChartConfig): string {
   const normalized = normalizeChartForType(chart);
   const parts = [dateRangeLabel(normalized.dateRange)];
 
-  if (normalized.type === 'number') {
-    const metric = normalized.numberMetric ?? 'spending';
-    const operation = normalizeNumberOperation(metric, normalized.numberOperation);
-
-    parts.push(`${numberOperationLabel(operation)} ${numberMetricLabel(metric)}`);
-    parts.push(granularityTitle(normalized.numberPeriod ?? 'monthly'));
-  } else {
-    parts.push(
-      visualizationTitle(normalized.visualization ?? defaultVisualizationForType(normalized.type))
-    );
-    if (normalized.visualization !== 'pie')
-      parts.push(granularityTitle(normalized.granularity ?? 'monthly'));
+  if (normalized.type !== 'number' && normalized.visualization !== 'pie') {
+    parts.push(granularityTitle(normalized.granularity ?? 'monthly'));
   }
-
-  const accountSummary = selectedIdFilterSummary(
-    normalized.accounts,
-    'account',
-    (id) => data?.accountById.get(id)?.name
-  );
-  if (accountSummary) parts.push(accountSummary);
-
-  const categorySummary = selectedIdFilterSummary(normalized.categories, 'category', (id) => {
-    if (id === UNCATEGORIZED_CATEGORY_ID) return 'Uncategorized';
-    return data?.categoryById.get(id)?.name;
-  });
-  if (categorySummary) parts.push(categorySummary);
-
-  const payeeSummary = selectedPayeeFilterSummary(normalized.payees);
-  if (payeeSummary) parts.push(payeeSummary);
 
   return parts.filter(Boolean).join(' · ');
 }
@@ -332,12 +304,6 @@ function dateRangeLabel(dateRange: DateRange) {
   );
 }
 
-function visualizationTitle(visualization: Visualization) {
-  if (visualization === 'line') return 'Line';
-  if (visualization === 'bar') return 'Bar';
-  return 'Pie';
-}
-
 function granularityTitle(granularity: Granularity) {
   if (granularity === 'daily') return 'Daily';
   if (granularity === 'weekly') return 'Weekly';
@@ -352,24 +318,6 @@ function numberMetricLabel(metric: NumberMetric) {
 
 function numberOperationLabel(operation: NumberOperation) {
   return titleCase(operation);
-}
-
-function selectedIdFilterSummary(
-  filter: IdFilter | undefined,
-  noun: string,
-  lookupName: (id: string) => string | undefined
-) {
-  if (!filter || filter.mode === 'all') return null;
-  if (filter.ids.length === 0) return `No ${noun}s`;
-  if (filter.ids.length === 1) return lookupName(filter.ids[0] ?? '') ?? `1 ${noun}`;
-  return `${filter.ids.length} ${noun}s`;
-}
-
-function selectedPayeeFilterSummary(filter: PayeeFilter | undefined) {
-  if (!filter || filter.mode === 'all') return null;
-  if (filter.payees.length === 0) return 'No payees';
-  if (filter.payees.length === 1) return filter.payees[0]?.name ?? '1 payee';
-  return `${filter.payees.length} payees`;
 }
 
 function titleCase(value: string) {
