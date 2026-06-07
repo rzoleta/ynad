@@ -34,7 +34,6 @@
   import EmptyDashboard from '$lib/components/dashboard/empty-dashboard.svelte';
   import YnabConnectPanel from '$lib/components/dashboard/ynab-connect-panel.svelte';
   import YnabErrorBanner from '$lib/components/dashboard/ynab-error-banner.svelte';
-  import { debugFetch } from '$lib/debug';
   import { fetchNormalizedBudgetSnapshot } from '$lib/ynab/snapshot';
   import { getYnabErrorCode, getYnabErrorMessage } from '$lib/ynab/errors';
   import { startYnabOAuth } from '$lib/ynab/auth';
@@ -63,9 +62,6 @@
   const budgetSelectionQuery = createQuery(() => ({
     queryKey: ['ynab', 'budget-selection', token],
     queryFn: async () => {
-      debugFetch('query:budget-selection:fn', {
-        hasToken: Boolean(token)
-      });
       if (!token) return null;
       return fetchBudgetSelectionState(token);
     },
@@ -76,10 +72,6 @@
   const snapshotQuery = createQuery<NormalizedBudgetData | null>(() => ({
     queryKey: ['ynab', 'snapshot', token, budgetId],
     queryFn: async () => {
-      debugFetch('query:snapshot:fn', {
-        hasToken: Boolean(token),
-        budgetId
-      });
       if (!token || !budgetId) return null;
       return fetchNormalizedBudgetSnapshot(token, budgetId);
     },
@@ -99,13 +91,6 @@
     connectionStatus = connection.status;
     budgetId = connection.status === 'disconnected' ? null : readSelectedBudgetId();
     charts = readDashboard(budgetId).charts;
-    debugFetch('app:on-mount', {
-      hasToken: Boolean(token),
-      connectionStatus,
-      tokenExpiresAt: connection.expiresAt ? new Date(connection.expiresAt).toISOString() : null,
-      budgetId,
-      charts: charts.length
-    });
 
     const interval = window.setInterval(() => {
       now = Date.now();
@@ -122,28 +107,6 @@
 
     budgetId = selectedBudgetId;
     charts = readDashboard(selectedBudgetId).charts;
-    debugFetch('budget-selection:applied', {
-      budgetId: selectedBudgetId,
-      charts: charts.length
-    });
-  });
-
-  $effect(() => {
-    debugFetch('state:snapshot-query', {
-      hasToken: Boolean(token),
-      connectionStatus,
-      budgetId,
-      budgetSelectionStatus: budgetSelectionQuery.status,
-      status: snapshotQuery.status,
-      fetchStatus: snapshotQuery.fetchStatus,
-      hasError: Boolean(dashboardError),
-      errorCode: dashboardError ? getYnabErrorCode(dashboardError) : null,
-      error: dashboardError instanceof Error ? dashboardError.message : null,
-      hasSnapshot: Boolean(snapshotQuery.data),
-      accounts: snapshotQuery.data?.accounts.length ?? null,
-      transactions: snapshotQuery.data?.transactions.length ?? null,
-      rateLimitPauseUntil
-    });
   });
 
   $effect(() => {
@@ -223,7 +186,6 @@
   }
 
   async function refresh() {
-    debugFetch('action:manual-refresh', { hasToken: Boolean(token), budgetId });
     rateLimitPauseUntil = null;
     await budgetSelectionQuery.refetch();
     await snapshotQuery.refetch();

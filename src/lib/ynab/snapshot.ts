@@ -1,4 +1,3 @@
-import { debugFetch } from '$lib/debug';
 import { normalizeBudgetData } from '$lib/domain/normalize';
 import type { NormalizedBudgetData } from '$lib/domain/types';
 import { ynabFetch } from './client';
@@ -17,7 +16,6 @@ export async function fetchRawBudgetSnapshot(
   token: string,
   budgetId: string
 ): Promise<YnabRawSnapshot> {
-  debugFetch('snapshot:raw:start', { budgetId });
   const [
     budgetsResponse,
     budgetResponse,
@@ -65,17 +63,6 @@ export async function fetchNormalizedBudgetSnapshot(
 ): Promise<NormalizedBudgetData> {
   const rawSnapshot = await fetchRawBudgetSnapshot(token, budgetId);
   const snapshot = normalizeBudgetData(rawSnapshot);
-
-  debugFetch('snapshot:normalized:success', {
-    budgetId,
-    budgetName: snapshot.budget.name,
-    accounts: snapshot.accounts.length,
-    categoryGroups: snapshot.categoryGroups.length,
-    transactions: snapshot.transactions.length,
-    entries: snapshot.entries.length,
-    payees: snapshot.payees.length,
-    serverKnowledge: snapshot.serverKnowledge
-  });
 
   return snapshot;
 }

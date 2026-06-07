@@ -1,6 +1,5 @@
 import type { ChartConfig } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
-import { debugFetch } from '$lib/debug';
 import type { NormalizedBudgetData } from '$lib/domain/types';
 import { computeBalanceChart } from './balance';
 import { computeIncomeChart } from './income';
@@ -16,11 +15,6 @@ export function computeChart(
   weekStart: WeekStart
 ): ChartResult {
   if (!snapshot) {
-    debugFetch('chart:no-snapshot', {
-      chartId: chart.id,
-      chartType: chart.type,
-      title: chart.title
-    });
     return { status: 'empty', message: 'Connect YNAB to preview this chart.' };
   }
 
