@@ -47,9 +47,9 @@
   <span class={compact ? 'text-xs text-muted-foreground' : undefined}>Date range</span>
   <div class={compact ? 'flex flex-wrap items-end gap-2' : 'grid gap-2'}>
     <Select.Root type="single" value={chart.dateRange.preset} onValueChange={setPreset}>
-      <Select.Trigger class={compact ? 'w-[12rem]' : 'w-full'} size={compact ? 'sm' : 'default'}>
+      <Select.Trigger class={compact ? 'w-48' : 'w-full'} size={compact ? 'sm' : 'default'}>
         <CalendarDays size={15} />
-        {label}
+        <p class="flex-1 text-left">{label}</p>
       </Select.Trigger>
       <Select.Content>
         {#each datePresetOptions as option (option.value)}
