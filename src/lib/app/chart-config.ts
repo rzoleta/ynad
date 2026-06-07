@@ -1,9 +1,14 @@
 import { z } from 'zod';
+import type { NormalizedBudgetData } from '$lib/domain/types';
+import { UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categories';
+
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export const chartTypeSchema = z.enum(['balance', 'spending', 'income', 'number']);
 export const visualizationSchema = z.enum(['line', 'bar', 'pie']);
 export const chartSizeSchema = z.enum(['small', 'medium', 'large']);
 export const granularitySchema = z.enum(['daily', 'weekly', 'monthly', 'yearly']);
+
 export const datePresetSchema = z.enum([
   'this-month',
   'this-year',
@@ -12,37 +17,35 @@ export const datePresetSchema = z.enum([
   'last-12-months',
   'custom'
 ]);
-export const numberMetricSchema = z.enum(['balance', 'spending', 'income', 'net-income']);
-export const numberOperationSchema = z.enum(['current', 'total', 'average', 'median']);
-
-const selectedFilterSchema = z.object({
-  mode: z.literal('selected'),
-  ids: z.array(z.string())
-});
-
-const allFilterSchema = z.object({
-  mode: z.literal('all')
-});
-
-export const filterSchema = z.union([allFilterSchema, selectedFilterSchema]);
-
-export const payeeFilterSchema = z.union([
-  allFilterSchema,
-  z.object({
-    mode: z.literal('selected'),
-    payees: z.array(
-      z.object({
-        id: z.string().nullable(),
-        name: z.string()
-      })
-    )
-  })
-]);
 
 export const dateRangeSchema = z.discriminatedUnion('preset', [
   z.object({ preset: datePresetSchema.exclude(['custom']) }),
-  z.object({ preset: z.literal('custom'), from: z.string(), to: z.string() })
+  z.object({
+    preset: z.literal('custom'),
+    from: z.string().regex(ISO_DATE_REGEX),
+    to: z.string().regex(ISO_DATE_REGEX)
+  })
 ]);
+
+export const idFilterSchema = z.union([
+  z.object({ mode: z.literal('all') }),
+  z.object({ mode: z.literal('selected'), ids: z.array(z.string()) })
+]);
+
+export const filterSchema = idFilterSchema;
+
+export const payeeRefSchema = z.object({
+  id: z.string().nullable(),
+  name: z.string().min(1)
+});
+
+export const payeeFilterSchema = z.union([
+  z.object({ mode: z.literal('all') }),
+  z.object({ mode: z.literal('selected'), payees: z.array(payeeRefSchema) })
+]);
+
+export const numberMetricSchema = z.enum(['balance', 'spending', 'income', 'net-income']);
+export const numberOperationSchema = z.enum(['current', 'total', 'average', 'median']);
 
 export const chartConfigSchema = z.object({
   id: z.string(),
@@ -53,8 +56,8 @@ export const chartConfigSchema = z.object({
   visualization: visualizationSchema.optional(),
   dateRange: dateRangeSchema,
   granularity: granularitySchema.optional(),
-  accounts: filterSchema,
-  categories: filterSchema.optional(),
+  accounts: idFilterSchema,
+  categories: idFilterSchema.optional(),
   payees: payeeFilterSchema.optional(),
   numberMetric: numberMetricSchema.optional(),
   numberOperation: numberOperationSchema.optional(),
@@ -66,41 +69,300 @@ export const dashboardSchema = z.object({
 });
 
 export type ChartType = z.infer<typeof chartTypeSchema>;
+export type Visualization = z.infer<typeof visualizationSchema>;
+export type ChartSize = z.infer<typeof chartSizeSchema>;
+export type Granularity = z.infer<typeof granularitySchema>;
+export type DatePreset = z.infer<typeof datePresetSchema>;
+export type DateRange = z.infer<typeof dateRangeSchema>;
+export type IdFilter = z.infer<typeof idFilterSchema>;
+export type PayeeRef = z.infer<typeof payeeRefSchema>;
+export type PayeeFilter = z.infer<typeof payeeFilterSchema>;
+export type NumberMetric = z.infer<typeof numberMetricSchema>;
+export type NumberOperation = z.infer<typeof numberOperationSchema>;
 export type ChartConfig = z.infer<typeof chartConfigSchema>;
 export type DashboardConfig = z.infer<typeof dashboardSchema>;
 
+const numberOperationDefaults = {
+  balance: 'current',
+  spending: 'total',
+  income: 'total',
+  'net-income': 'total'
+} satisfies Record<NumberMetric, NumberOperation>;
+
+const validNumberOperations: Record<NumberMetric, NumberOperation[]> = {
+  balance: ['current', 'average', 'median'],
+  spending: ['total', 'average', 'median'],
+  income: ['total', 'average', 'median'],
+  'net-income': ['total', 'average', 'median']
+};
+
 export function createDefaultChart(type: ChartType): ChartConfig {
-  const id = crypto.randomUUID();
-  const isNumber = type === 'number';
+  return normalizeChartForType({
+    id: createChartId(),
+    title: 'New chart',
+    titleEdited: false,
+    type,
+    size: type === 'number' ? 'small' : 'medium',
+    dateRange: { preset: 'this-month' },
+    accounts: allIdFilter()
+  });
+}
+
+export function normalizeChartForType(chart: ChartConfig): ChartConfig {
+  const next: ChartConfig = {
+    ...chart,
+    dateRange: normalizeDateRange(chart.dateRange),
+    accounts: normalizeIdFilter(chart.accounts)
+  };
+
+  if (next.type === 'number') {
+    const metric = next.numberMetric ?? 'spending';
+
+    next.visualization = undefined;
+    next.granularity = undefined;
+    next.numberMetric = metric;
+    next.numberOperation = normalizeNumberOperation(metric, next.numberOperation);
+    next.numberPeriod = next.numberPeriod ?? 'monthly';
+
+    return maybeUpdateGeneratedTitle(next);
+  }
+
+  next.visualization = next.visualization ?? defaultVisualizationForType(next.type);
+  next.granularity = next.visualization === 'pie' ? undefined : (next.granularity ?? 'monthly');
+  next.numberMetric = undefined;
+  next.numberOperation = undefined;
+  next.numberPeriod = undefined;
+
+  if (next.type === 'balance') {
+    next.categories = undefined;
+    next.payees = undefined;
+    return maybeUpdateGeneratedTitle(next);
+  }
+
+  if (next.type === 'income') {
+    next.categories = undefined;
+    next.payees = normalizePayeeFilter(next.payees);
+    return maybeUpdateGeneratedTitle(next);
+  }
+
+  next.categories = normalizeIdFilter(next.categories);
+  next.payees = normalizePayeeFilter(next.payees);
+  return maybeUpdateGeneratedTitle(next);
+}
+
+export function getGeneratedTitle(chart: ChartConfig): string {
+  if (chart.type === 'balance') {
+    if (chart.visualization === 'pie') return 'Balance by Account';
+    return 'Net Worth';
+  }
+
+  if (chart.type === 'income') {
+    if (chart.visualization === 'pie') return 'Income by Payee';
+    return `${granularityTitle(chart.granularity ?? 'monthly')} Income`;
+  }
+
+  if (chart.type === 'number') {
+    const metric = chart.numberMetric ?? 'spending';
+    const operation = normalizeNumberOperation(metric, chart.numberOperation);
+    const metricLabel = numberMetricLabel(metric);
+
+    if (operation === 'current') return `Current ${metricLabel}`;
+    if (operation === 'total') return `Total ${metricLabel}`;
+
+    return `${numberOperationLabel(operation)} ${granularityTitle(
+      chart.numberPeriod ?? 'monthly'
+    )} ${metricLabel}`;
+  }
+
+  if (chart.visualization === 'pie') return 'Spending by Category';
+  return `${granularityTitle(chart.granularity ?? 'monthly')} Spending`;
+}
+
+export function maybeUpdateGeneratedTitle(chart: ChartConfig): ChartConfig {
+  if (chart.titleEdited) return chart;
+  return { ...chart, title: getGeneratedTitle(chart) };
+}
+
+export function getChartMetadata(chart: ChartConfig, data?: NormalizedBudgetData): string {
+  const normalized = normalizeChartForType(chart);
+  const parts = [dateRangeLabel(normalized.dateRange)];
+
+  if (normalized.type === 'number') {
+    const metric = normalized.numberMetric ?? 'spending';
+    const operation = normalizeNumberOperation(metric, normalized.numberOperation);
+
+    parts.push(`${numberOperationLabel(operation)} ${numberMetricLabel(metric)}`);
+    parts.push(granularityTitle(normalized.numberPeriod ?? 'monthly'));
+  } else {
+    parts.push(
+      visualizationTitle(normalized.visualization ?? defaultVisualizationForType(normalized.type))
+    );
+    if (normalized.visualization !== 'pie')
+      parts.push(granularityTitle(normalized.granularity ?? 'monthly'));
+  }
+
+  const accountSummary = selectedIdFilterSummary(
+    normalized.accounts,
+    'account',
+    (id) => data?.accountById.get(id)?.name
+  );
+  if (accountSummary) parts.push(accountSummary);
+
+  const categorySummary = selectedIdFilterSummary(normalized.categories, 'category', (id) => {
+    if (id === UNCATEGORIZED_CATEGORY_ID) return 'Uncategorized';
+    return data?.categoryById.get(id)?.name;
+  });
+  if (categorySummary) parts.push(categorySummary);
+
+  const payeeSummary = selectedPayeeFilterSummary(normalized.payees);
+  if (payeeSummary) parts.push(payeeSummary);
+
+  return parts.filter(Boolean).join(' · ');
+}
+
+export function isChartPreviewable(chart: ChartConfig): boolean {
+  const parsed = chartConfigSchema.safeParse(chart);
+  if (!parsed.success) return false;
+
+  const normalized = normalizeChartForType(parsed.data);
+
+  if (!isDateRangePreviewable(normalized.dateRange)) return false;
+
+  if (normalized.type === 'number') {
+    const metric = normalized.numberMetric;
+    const operation = normalized.numberOperation;
+    return Boolean(
+      metric &&
+      operation &&
+      normalized.numberPeriod &&
+      validNumberOperations[metric].includes(operation)
+    );
+  }
+
+  if (!normalized.visualization) return false;
+  if (normalized.visualization !== 'pie' && !normalized.granularity) return false;
+
+  return true;
+}
+
+function createChartId() {
+  return globalThis.crypto?.randomUUID?.() ?? `chart-${Date.now()}-${Math.random()}`;
+}
+
+function allIdFilter(): IdFilter {
+  return { mode: 'all' };
+}
+
+function allPayeeFilter(): PayeeFilter {
+  return { mode: 'all' };
+}
+
+function normalizeIdFilter(filter: IdFilter | undefined): IdFilter {
+  if (!filter || filter.mode === 'all') return allIdFilter();
 
   return {
-    id,
-    type,
-    title: getGeneratedTitle(type),
-    titleEdited: false,
-    size: isNumber ? 'small' : 'medium',
-    visualization: isNumber ? undefined : type === 'balance' ? 'line' : 'bar',
-    dateRange: { preset: 'this-month' },
-    granularity: isNumber ? undefined : 'monthly',
-    accounts: { mode: 'all' },
-    categories: type === 'spending' ? { mode: 'all' } : undefined,
-    payees: type === 'spending' || type === 'income' ? { mode: 'all' } : undefined,
-    numberMetric: isNumber ? 'spending' : undefined,
-    numberOperation: isNumber ? 'total' : undefined,
-    numberPeriod: isNumber ? 'monthly' : undefined
+    mode: 'selected',
+    ids: [...new Set(filter.ids.filter(Boolean))]
   };
 }
 
-export function getGeneratedTitle(type: ChartType) {
-  if (type === 'balance') return 'Net Worth';
-  if (type === 'spending') return 'Monthly Spending';
-  if (type === 'income') return 'Monthly Income';
-  return 'Total Spending';
+function normalizePayeeFilter(filter: PayeeFilter | undefined): PayeeFilter {
+  if (!filter || filter.mode === 'all') return allPayeeFilter();
+
+  const seen = new Set<string>();
+  const payees = filter.payees.filter((payee) => {
+    const key = payee.id ? `id:${payee.id}` : `name:${payee.name}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return payee.name.length > 0;
+  });
+
+  return { mode: 'selected', payees };
 }
 
-export function getChartMetadata(chart: ChartConfig) {
-  const date = chart.dateRange.preset.replaceAll('-', ' ');
-  const visual = chart.visualization ?? chart.numberOperation ?? 'number';
-  const period = chart.granularity ?? chart.numberPeriod;
-  return [date, period, visual].filter(Boolean).join(' · ');
+function normalizeDateRange(dateRange: DateRange): DateRange {
+  if (dateRange.preset !== 'custom') return { preset: dateRange.preset };
+  return { preset: 'custom', from: dateRange.from, to: dateRange.to };
+}
+
+function defaultVisualizationForType(type: Exclude<ChartType, 'number'>): Visualization {
+  return type === 'balance' ? 'line' : 'bar';
+}
+
+function normalizeNumberOperation(
+  metric: NumberMetric,
+  operation: NumberOperation | undefined
+): NumberOperation {
+  if (operation && validNumberOperations[metric].includes(operation)) return operation;
+  return numberOperationDefaults[metric];
+}
+
+function isDateRangePreviewable(dateRange: DateRange): boolean {
+  if (dateRange.preset !== 'custom') return true;
+  return (
+    ISO_DATE_REGEX.test(dateRange.from) &&
+    ISO_DATE_REGEX.test(dateRange.to) &&
+    dateRange.from <= dateRange.to
+  );
+}
+
+function dateRangeLabel(dateRange: DateRange) {
+  if (dateRange.preset === 'custom') return `${dateRange.from} to ${dateRange.to}`;
+
+  const labels = {
+    'this-month': 'This month',
+    'this-year': 'This year',
+    'last-month': 'Last month',
+    'last-year': 'Last year',
+    'last-12-months': 'Last 12 months'
+  } satisfies Record<Exclude<DatePreset, 'custom'>, string>;
+
+  return labels[dateRange.preset];
+}
+
+function visualizationTitle(visualization: Visualization) {
+  if (visualization === 'line') return 'Line';
+  if (visualization === 'bar') return 'Bar';
+  return 'Pie';
+}
+
+function granularityTitle(granularity: Granularity) {
+  if (granularity === 'daily') return 'Daily';
+  if (granularity === 'weekly') return 'Weekly';
+  if (granularity === 'yearly') return 'Yearly';
+  return 'Monthly';
+}
+
+function numberMetricLabel(metric: NumberMetric) {
+  if (metric === 'net-income') return 'Net Income';
+  return titleCase(metric);
+}
+
+function numberOperationLabel(operation: NumberOperation) {
+  return titleCase(operation);
+}
+
+function selectedIdFilterSummary(
+  filter: IdFilter | undefined,
+  noun: string,
+  lookupName: (id: string) => string | undefined
+) {
+  if (!filter || filter.mode === 'all') return null;
+  if (filter.ids.length === 0) return `No ${noun}s`;
+  if (filter.ids.length === 1) return lookupName(filter.ids[0] ?? '') ?? `1 ${noun}`;
+  return `${filter.ids.length} ${noun}s`;
+}
+
+function selectedPayeeFilterSummary(filter: PayeeFilter | undefined) {
+  if (!filter || filter.mode === 'all') return null;
+  if (filter.payees.length === 0) return 'No payees';
+  if (filter.payees.length === 1) return filter.payees[0]?.name ?? '1 payee';
+  return `${filter.payees.length} payees`;
+}
+
+function titleCase(value: string) {
+  return value
+    .split('-')
+    .map((word) => `${word.slice(0, 1).toUpperCase()}${word.slice(1)}`)
+    .join(' ');
 }

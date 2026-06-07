@@ -25,6 +25,8 @@
   import {
     getChartMetadata,
     createDefaultChart,
+    isChartPreviewable,
+    normalizeChartForType,
     type ChartConfig,
     type ChartType
   } from '$lib/app/chart-config';
@@ -126,6 +128,7 @@
   const isRefreshing = $derived(budgetSelectionQuery.isFetching || snapshotQuery.isFetching);
   const dashboardError = $derived(snapshotQuery.error ?? budgetSelectionQuery.error ?? null);
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
+  const editingChartPreviewable = $derived(editingChart ? isChartPreviewable(editingChart) : false);
 
   onMount(() => {
     const connection = readYnabConnectionState();
@@ -210,13 +213,54 @@
     editorOpen = true;
   }
 
+  function updateEditingChart(next: ChartConfig) {
+    editingChart = normalizeChartForType(next);
+  }
+
+  function setEditingChartType(type: string) {
+    if (!editingChart) return;
+    updateEditingChart({ ...editingChart, type: type as ChartType });
+  }
+
+  function setEditingChartSize(size: string) {
+    if (!editingChart) return;
+    updateEditingChart({ ...editingChart, size: size as ChartConfig['size'] });
+  }
+
+  function setEditingDatePreset(preset: string) {
+    if (!editingChart) return;
+    updateEditingChart({
+      ...editingChart,
+      dateRange: { preset } as ChartConfig['dateRange']
+    });
+  }
+
+  function setEditingVisualization(visualization: string) {
+    if (!editingChart) return;
+    updateEditingChart({
+      ...editingChart,
+      visualization: visualization as NonNullable<ChartConfig['visualization']>
+    });
+  }
+
+  function setEditingGranularity(granularity: string) {
+    if (!editingChart) return;
+    updateEditingChart({
+      ...editingChart,
+      granularity: granularity as NonNullable<ChartConfig['granularity']>
+    });
+  }
+
   function saveChart() {
     if (!editingChart) return;
-    const existing = charts.some((chart) => chart.id === editingChart?.id);
+    const nextChart = normalizeChartForType(editingChart);
+    if (!isChartPreviewable(nextChart)) return;
+
+    const existing = charts.some((chart) => chart.id === nextChart.id);
     persist(
       existing
-        ? charts.map((chart) => (chart.id === editingChart?.id ? editingChart : chart))
-        : [...charts, editingChart]
+        ? charts.map((chart) => (chart.id === nextChart.id ? nextChart : chart))
+        : [...charts, nextChart]
     );
     editorOpen = false;
     editingChart = null;
@@ -252,6 +296,12 @@
   }
 
   function resultFor(chart: ChartConfig): ChartResult {
+    const normalized = normalizeChartForType(chart);
+
+    if (!isChartPreviewable(normalized)) {
+      return { status: 'empty', message: 'Complete the chart settings to preview this chart.' };
+    }
+
     if (!snapshotQuery.data && connectionStatus === 'expired') {
       return { status: 'error', message: 'Reconnect YNAB to refresh this chart.' };
     }
@@ -260,7 +310,7 @@
       return { status: 'error', message: getDashboardErrorMessage(dashboardError) };
     }
 
-    return computeChart(chart, snapshotQuery.data ?? null, getEffectiveWeekStart());
+    return computeChart(normalized, snapshotQuery.data ?? null, getEffectiveWeekStart());
   }
 
   function getDashboardErrorTitle(error: unknown) {
@@ -415,7 +465,7 @@
                   <h2 class="font-semibold">{chart.title}</h2>
                 </div>
                 <p class="mt-1 text-xs text-muted-foreground capitalize">
-                  {getChartMetadata(chart)}
+                  {getChartMetadata(chart, snapshotQuery.data ?? undefined)}
                 </p>
               </div>
               <div class="flex items-center gap-1">
@@ -487,7 +537,11 @@
           </label>
           <label class="field">
             <span>Type</span>
-            <Select.Root type="single" bind:value={editingChart.type}>
+            <Select.Root
+              type="single"
+              value={editingChart.type}
+              onValueChange={setEditingChartType}
+            >
               <Select.Trigger class="w-full">
                 {optionLabel(chartTypeOptions, editingChart.type)}
               </Select.Trigger>
@@ -501,7 +555,11 @@
           </label>
           <label class="field">
             <span>Size</span>
-            <Select.Root type="single" bind:value={editingChart.size}>
+            <Select.Root
+              type="single"
+              value={editingChart.size}
+              onValueChange={setEditingChartSize}
+            >
               <Select.Trigger class="w-full">
                 {optionLabel(chartSizeOptions, editingChart.size)}
               </Select.Trigger>
@@ -515,7 +573,11 @@
           </label>
           <label class="field">
             <span>Date range</span>
-            <Select.Root type="single" bind:value={editingChart.dateRange.preset}>
+            <Select.Root
+              type="single"
+              value={editingChart.dateRange.preset}
+              onValueChange={setEditingDatePreset}
+            >
               <Select.Trigger class="w-full">
                 {optionLabel(dateRangeOptions, editingChart.dateRange.preset)}
               </Select.Trigger>
@@ -531,7 +593,8 @@
             <span>Visualization</span>
             <Select.Root
               type="single"
-              bind:value={editingChart.visualization}
+              value={editingChart.visualization}
+              onValueChange={setEditingVisualization}
               disabled={editingChart.type === 'number'}
             >
               <Select.Trigger class="w-full">
@@ -549,7 +612,8 @@
             <span>Granularity</span>
             <Select.Root
               type="single"
-              bind:value={editingChart.granularity}
+              value={editingChart.granularity}
+              onValueChange={setEditingGranularity}
               disabled={editingChart.type === 'number' || editingChart.visualization === 'pie'}
             >
               <Select.Trigger class="w-full">
@@ -603,7 +667,9 @@
       </div>
       <div class="flex justify-end gap-2 border-t border-border p-5">
         <button class="button secondary" onclick={() => (editorOpen = false)}>Cancel</button>
-        <button class="button primary" onclick={saveChart}>Save</button>
+        <button class="button primary" disabled={!editingChartPreviewable} onclick={saveChart}
+          >Save</button
+        >
       </div>
     </aside>
   {/if}
