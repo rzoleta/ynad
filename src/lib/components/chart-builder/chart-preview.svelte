@@ -22,22 +22,14 @@
 
     return computeChart(chart, data, weekStart);
   });
-  const previewTitleId = $derived(`chart-preview-title-${chart.id}`);
 </script>
 
-<section aria-labelledby={previewTitleId}>
-  <div class="flex items-center justify-between gap-3">
-    <h3 id={previewTitleId} class="text-sm font-medium">Preview</h3>
-    <span class="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-      {chart.type}
-    </span>
-  </div>
+<section>
   <ChartRenderer
     {result}
     {chart}
     type={chart.type}
     currency={data?.budget.currencyFormat ?? null}
     size="builder"
-    class="mt-3"
   />
 </section>
