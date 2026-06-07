@@ -1,7 +1,7 @@
 <script lang="ts">
   import { CalendarDays } from '@lucide/svelte';
   import * as Select from '$lib/components/ui/select/index.js';
-  import type { ChartConfig, DatePreset } from '$lib/app/chart-config';
+  import { datePresetOptions, type ChartConfig, type DatePreset } from '$lib/app/chart-config';
 
   let {
     chart,
@@ -11,18 +11,9 @@
     onChange: (chart: ChartConfig) => void;
   } = $props();
 
-  const options = [
-    { value: 'this-month', label: 'This Month' },
-    { value: 'this-year', label: 'This Year' },
-    { value: 'last-month', label: 'Last Month' },
-    { value: 'last-year', label: 'Last Year' },
-    { value: 'last-12-months', label: 'Last 12 Months' },
-    { value: 'last-24-months', label: 'Last 24 Months' },
-    { value: 'custom', label: 'Custom' }
-  ] satisfies Array<{ value: DatePreset; label: string }>;
-
   const label = $derived(
-    options.find((option) => option.value === chart.dateRange.preset)?.label ?? 'Date range'
+    datePresetOptions.find((option) => option.value === chart.dateRange.preset)?.label ??
+      'Date range'
   );
 
   function formatLocalDate(date: Date) {
@@ -58,7 +49,7 @@
       {label}
     </Select.Trigger>
     <Select.Content>
-      {#each options as option (option.value)}
+      {#each datePresetOptions as option (option.value)}
         <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
       {/each}
     </Select.Content>

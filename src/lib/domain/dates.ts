@@ -12,18 +12,9 @@ import {
   subMonths,
   subYears
 } from 'date-fns';
-import type { ChartConfig } from '$lib/app/chart-config';
+import type { ChartConfig, DatePreset } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
 import type { ISODate } from './types';
-
-export type DatePreset =
-  | 'this-month'
-  | 'this-year'
-  | 'last-month'
-  | 'last-year'
-  | 'last-12-months'
-  | 'last-24-months'
-  | 'custom';
 
 export type ResolvedDateRange = {
   from: ISODate;

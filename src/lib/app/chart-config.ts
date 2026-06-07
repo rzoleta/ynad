@@ -9,7 +9,7 @@ export const visualizationSchema = z.enum(['line', 'bar', 'pie']);
 export const chartSizeSchema = z.enum(['small', 'medium', 'large']);
 export const granularitySchema = z.enum(['daily', 'weekly', 'monthly', 'yearly']);
 
-export const datePresetSchema = z.enum([
+export const datePresets = [
   'this-month',
   'this-year',
   'last-month',
@@ -17,7 +17,19 @@ export const datePresetSchema = z.enum([
   'last-12-months',
   'last-24-months',
   'custom'
-]);
+] as const;
+
+export const datePresetOptions = [
+  { value: 'this-month', label: 'This Month', metadataLabel: 'This month' },
+  { value: 'this-year', label: 'This Year', metadataLabel: 'This year' },
+  { value: 'last-month', label: 'Last Month', metadataLabel: 'Last month' },
+  { value: 'last-year', label: 'Last Year', metadataLabel: 'Last year' },
+  { value: 'last-12-months', label: 'Last 12 Months', metadataLabel: 'Last 12 months' },
+  { value: 'last-24-months', label: 'Last 24 Months', metadataLabel: 'Last 24 months' },
+  { value: 'custom', label: 'Custom', metadataLabel: 'Custom' }
+] satisfies Array<{ value: (typeof datePresets)[number]; label: string; metadataLabel: string }>;
+
+export const datePresetSchema = z.enum(datePresets);
 
 export const dateRangeSchema = z.discriminatedUnion('preset', [
   z.object({ preset: datePresetSchema.exclude(['custom']) }),
@@ -73,7 +85,7 @@ export type ChartType = z.infer<typeof chartTypeSchema>;
 export type Visualization = z.infer<typeof visualizationSchema>;
 export type ChartSize = z.infer<typeof chartSizeSchema>;
 export type Granularity = z.infer<typeof granularitySchema>;
-export type DatePreset = z.infer<typeof datePresetSchema>;
+export type DatePreset = (typeof datePresets)[number];
 export type DateRange = z.infer<typeof dateRangeSchema>;
 export type IdFilter = z.infer<typeof idFilterSchema>;
 export type PayeeRef = z.infer<typeof payeeRefSchema>;
@@ -312,17 +324,10 @@ function isDateRangePreviewable(dateRange: DateRange): boolean {
 
 function dateRangeLabel(dateRange: DateRange) {
   if (dateRange.preset === 'custom') return `${dateRange.from} to ${dateRange.to}`;
-
-  const labels = {
-    'this-month': 'This month',
-    'this-year': 'This year',
-    'last-month': 'Last month',
-    'last-year': 'Last year',
-    'last-12-months': 'Last 12 months',
-    'last-24-months': 'Last 24 months'
-  } satisfies Record<Exclude<DatePreset, 'custom'>, string>;
-
-  return labels[dateRange.preset];
+  return (
+    datePresetOptions.find((option) => option.value === dateRange.preset)?.metadataLabel ??
+    dateRange.preset
+  );
 }
 
 function visualizationTitle(visualization: Visualization) {
