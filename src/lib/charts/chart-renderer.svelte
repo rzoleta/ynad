@@ -95,10 +95,10 @@
     result.status === 'series' ? (result.excluded?.map((item) => item.label).join(', ') ?? '') : ''
   );
   const summaryId = $derived(`chart-summary-${chart.id}`);
-  const frameHeightClass = $derived(size === 'builder' ? 'h-[56vh] min-h-[560px]' : 'h-48');
   const chartHeightClass = $derived(
     size === 'builder' ? 'min-h-[56vh] lg:min-h-[560px]' : 'min-h-[240px]'
   );
+  const placeholderHeightClass = $derived(cn('aspect-video w-full', chartHeightClass));
   const chartAriaLabel = $derived.by(() => {
     const title = chart.title || `${type} chart`;
 
@@ -148,7 +148,7 @@
 
 <div class={cn('mt-5 min-h-48 overflow-hidden', className)}>
   {#if result.status === 'number'}
-    <div class={cn('flex items-center rounded-md bg-background p-5', frameHeightClass)}>
+    <div class={cn('flex items-center rounded-md bg-background p-5', placeholderHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground capitalize">{result.label}</p>
         <p class="mt-2 text-4xl font-semibold break-words">
@@ -228,7 +228,7 @@
     <div
       class={cn(
         'grid place-items-center rounded-md bg-background p-5 text-center text-muted-foreground',
-        frameHeightClass
+        placeholderHeightClass
       )}
       aria-live="polite"
       aria-busy="true"
@@ -242,7 +242,7 @@
     <div
       class={cn(
         'grid place-items-center rounded-md bg-danger/10 p-5 text-center text-danger',
-        frameHeightClass
+        placeholderHeightClass
       )}
       role="alert"
     >
@@ -252,7 +252,7 @@
       </div>
     </div>
   {:else if type === 'number'}
-    <div class={cn('flex items-center rounded-md bg-background p-5', frameHeightClass)}>
+    <div class={cn('flex items-center rounded-md bg-background p-5', placeholderHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground">{result.message}</p>
         <p class="mt-2 text-4xl font-semibold">--</p>
@@ -262,7 +262,7 @@
     <div
       class={cn(
         'grid place-items-center rounded-md bg-background p-5 text-center text-muted-foreground',
-        frameHeightClass
+        placeholderHeightClass
       )}
     >
       <div>
