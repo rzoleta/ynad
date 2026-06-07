@@ -28,6 +28,24 @@
     class?: string;
   } = $props();
 
+  let chartContainerRef = $state<HTMLDivElement | null>(null);
+  let chartHeight = $state(400);
+
+  $effect(() => {
+    if (!chartContainerRef) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        chartHeight = entry.contentRect.height;
+      }
+    });
+
+    observer.observe(chartContainerRef);
+    return () => observer.disconnect();
+  });
+
+  const tooltipYPosition = $derived(chartHeight / 2);
+
   const displayCurrency = $derived(currency ?? normalizeCurrencyFormat());
   const visual = $derived(
     result.status === 'series' ? result.visualization : (chart.visualization ?? 'bar')
@@ -227,7 +245,12 @@
   {:else if result.status === 'series'}
     <div class="space-y-3">
       <p id={summaryId} class="sr-only">{chartAriaLabel}</p>
-      <div class="rounded-md bg-background px-2 py-4" role="img" aria-labelledby={summaryId}>
+      <div
+        bind:this={chartContainerRef}
+        class="rounded-md bg-background px-2 py-4"
+        role="img"
+        aria-labelledby={summaryId}
+      >
         <Chart.Container {config} class={cn(aspectClass, chartHeightClass)}>
           {#if visual === 'line'}
             {#if hasBreakdown && breakdownData && breakdownSeries.length > 0}
@@ -244,7 +267,10 @@
                 series={breakdownSeries}
                 seriesLayout="overlap"
                 props={{
-                  tooltip: { item: { format: formatTooltipValue } },
+                  tooltip: {
+                    item: { format: formatTooltipValue },
+                    root: { x: 'data', y: tooltipYPosition }
+                  },
                   area: {
                     curve: curveMonotoneX,
                     fillOpacity: 0.12,
@@ -269,7 +295,10 @@
                 {yDomain}
                 series={[{ key: 'value', label: chart.title, color: seriesColor }]}
                 props={{
-                  tooltip: { item: { format: formatTooltipValue } },
+                  tooltip: {
+                    item: { format: formatTooltipValue },
+                    root: { x: 'data', y: tooltipYPosition }
+                  },
                   area: {
                     curve: curveMonotoneX,
                     fillOpacity: 0.22,
@@ -313,7 +342,10 @@
               series={breakdownSeries}
               seriesLayout="stack"
               props={{
-                tooltip: { item: { format: formatTooltipValue } },
+                tooltip: {
+                  item: { format: formatTooltipValue },
+                  root: { x: 'data', y: tooltipYPosition }
+                },
                 xAxis: { format: formatXTick },
                 yAxis: { format: formatAxisValue }
               }}
@@ -329,7 +361,10 @@
               {yDomain}
               series={[{ key: 'value', label: chart.title, color: seriesColor }]}
               props={{
-                tooltip: { item: { format: formatTooltipValue } },
+                tooltip: {
+                  item: { format: formatTooltipValue },
+                  root: { x: 'data', y: tooltipYPosition }
+                },
                 xAxis: { format: formatXTick },
                 yAxis: { format: formatAxisValue }
               }}
