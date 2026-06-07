@@ -1,7 +1,7 @@
 <script lang="ts">
   import { scaleBand, scaleOrdinal } from 'd3-scale';
   import { curveMonotoneX } from 'd3-shape';
-  import { BarChart, LineChart, PieChart } from 'layerchart';
+  import { AreaChart, BarChart, PieChart } from 'layerchart';
   import { CircleDollarSign, LoaderCircle } from '@lucide/svelte';
   import * as Chart from '$lib/components/ui/chart';
   import type { ChartConfig as AppChartConfig, ChartType } from '$lib/app/chart-config';
@@ -156,7 +156,7 @@
       <div class="rounded-md bg-background px-2 py-4" role="img" aria-labelledby={summaryId}>
         <Chart.Container {config} class="min-h-[240px]">
           {#if visual === 'line'}
-            <LineChart
+            <AreaChart
               data={points}
               x="label"
               y="value"
@@ -166,11 +166,15 @@
               series={[{ key: 'value', label: chart.title, color: seriesColor }]}
               props={{
                 tooltip: { item: { format: formatTooltipValue } },
-                spline: {
+                area: {
                   curve: curveMonotoneX,
-                  strokeWidth: 3,
-                  'stroke-linecap': 'round',
-                  'stroke-linejoin': 'round'
+                  fillOpacity: 0.22,
+                  line: {
+                    curve: curveMonotoneX,
+                    strokeWidth: 3,
+                    'stroke-linecap': 'round',
+                    'stroke-linejoin': 'round'
+                  }
                 },
                 xAxis: { format: formatXTick },
                 yAxis: { format: formatAxisValue }
