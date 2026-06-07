@@ -98,7 +98,8 @@
   const chartHeightClass = $derived(
     size === 'builder' ? 'min-h-[56vh] lg:min-h-[560px]' : 'min-h-[240px]'
   );
-  const placeholderHeightClass = $derived(cn('aspect-video w-full', chartHeightClass));
+  const aspectClass = $derived(chart.size === 'medium' ? 'aspect-[16/5]' : chart.size === 'small' ? 'aspect-[16/10]' : 'aspect-[16/8]');
+  const placeholderHeightClass = $derived(cn(aspectClass, 'w-full', chartHeightClass));
   const chartAriaLabel = $derived.by(() => {
     const title = chart.title || `${type} chart`;
 
@@ -160,7 +161,7 @@
     <div class="space-y-3">
       <p id={summaryId} class="sr-only">{chartAriaLabel}</p>
       <div class="rounded-md bg-background px-2 py-4" role="img" aria-labelledby={summaryId}>
-        <Chart.Container {config} class={chartHeightClass}>
+        <Chart.Container {config} class={cn(aspectClass, chartHeightClass)}>
           {#if visual === 'line'}
             <AreaChart
               data={points}
