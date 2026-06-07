@@ -160,7 +160,7 @@ select:focus-visible {
   }
 
   .icon-button {
-    @apply inline-grid size-10 place-items-center rounded-md border border-border bg-card text-foreground transition hover:bg-muted;
+    @apply inline-grid size-10 place-items-center rounded-md border border-border bg-card text-foreground transition hover:bg-muted disabled:pointer-events-none disabled:opacity-50;
   }
 
   .icon-button.danger {

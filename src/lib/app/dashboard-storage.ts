@@ -1,5 +1,6 @@
 import {
   dashboardSchema,
+  type ChartSize,
   normalizeChartForType,
   type ChartConfig,
   type DashboardConfig
@@ -42,8 +43,35 @@ export function reorderCharts(charts: ChartConfig[], from: number, to: number) {
   return next;
 }
 
+export function cloneDashboardChart(chart: ChartConfig): ChartConfig {
+  return JSON.parse(JSON.stringify(chart)) as ChartConfig;
+}
+
+export function duplicateDashboardChart(chart: ChartConfig): ChartConfig {
+  return normalizeChartForType({
+    ...cloneDashboardChart(chart),
+    id: createChartId(),
+    title: `${chart.title} copy`,
+    titleEdited: true
+  });
+}
+
+export function resizeDashboardChart(
+  charts: ChartConfig[],
+  chartId: string,
+  size: ChartSize
+): ChartConfig[] {
+  return charts.map((chart) =>
+    chart.id === chartId ? normalizeChartForType({ ...chart, size }) : chart
+  );
+}
+
 function normalizeDashboard(dashboard: DashboardConfig): DashboardConfig {
   return {
     charts: dashboard.charts.map(normalizeChartForType)
   };
+}
+
+function createChartId() {
+  return globalThis.crypto?.randomUUID?.() ?? `chart-${Date.now()}-${Math.random()}`;
 }

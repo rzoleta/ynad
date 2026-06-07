@@ -1,15 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
-  import {
-    BarChart3,
-    Copy,
-    GripVertical,
-    LineChart,
-    Plus,
-    RefreshCcw,
-    Settings,
-    Trash2
-  } from '@lucide/svelte';
   import { createQuery } from '@tanstack/svelte-query';
   import { onMount } from 'svelte';
   import {
@@ -20,22 +9,32 @@
     shouldRetryYnabQuery,
     type YnabConnectionState
   } from '$lib/app/app-state';
-  import { fetchBudgetSelectionState } from '$lib/app/budget-selection';
+  import { fetchBudgetSelectionState, readSelectedBudgetId } from '$lib/app/budget-selection';
   import {
-    getChartMetadata,
     createDefaultChart,
     isChartPreviewable,
     normalizeChartForType,
     type ChartConfig,
+    type ChartSize,
     type ChartType
   } from '$lib/app/chart-config';
-  import { readDashboard, reorderCharts, writeDashboard } from '$lib/app/dashboard-storage';
+  import {
+    cloneDashboardChart,
+    duplicateDashboardChart,
+    readDashboard,
+    reorderCharts,
+    resizeDashboardChart,
+    writeDashboard
+  } from '$lib/app/dashboard-storage';
   import { getEffectiveWeekStart } from '$lib/app/settings';
   import { computeChart, type ChartResult } from '$lib/charts/compute';
-  import ChartRenderer from '$lib/charts/chart-renderer.svelte';
   import ChartBuilderSheet from '$lib/components/chart-builder/chart-builder-sheet.svelte';
+  import ChartCard from '$lib/components/dashboard/chart-card.svelte';
+  import DashboardToolbar from '$lib/components/dashboard/dashboard-toolbar.svelte';
+  import EmptyDashboard from '$lib/components/dashboard/empty-dashboard.svelte';
+  import YnabConnectPanel from '$lib/components/dashboard/ynab-connect-panel.svelte';
+  import YnabErrorBanner from '$lib/components/dashboard/ynab-error-banner.svelte';
   import { debugFetch } from '$lib/debug';
-  import { cn, formatDateTime } from '$lib/utils';
   import { fetchNormalizedBudgetSnapshot } from '$lib/ynab/snapshot';
   import { getYnabErrorCode, getYnabErrorMessage } from '$lib/ynab/errors';
   import { startYnabOAuth } from '$lib/ynab/auth';
@@ -98,8 +97,8 @@
     const connection = readYnabConnectionState();
     token = connection.accessToken;
     connectionStatus = connection.status;
-    budgetId = null;
-    charts = readDashboard(null).charts;
+    budgetId = connection.status === 'disconnected' ? null : readSelectedBudgetId();
+    charts = readDashboard(budgetId).charts;
     debugFetch('app:on-mount', {
       hasToken: Boolean(token),
       connectionStatus,
@@ -116,6 +115,8 @@
   });
 
   $effect(() => {
+    if (budgetSelectionQuery.data === undefined) return;
+
     const selectedBudgetId = budgetSelectionQuery.data?.selectedBudgetId ?? null;
     if (selectedBudgetId === budgetId) return;
 
@@ -173,7 +174,7 @@
   }
 
   function openEdit(chart: ChartConfig) {
-    editingChart = structuredClone(chart);
+    editingChart = cloneDashboardChart(chart);
     editorOpen = true;
   }
 
@@ -199,14 +200,16 @@
   }
 
   function duplicateChart(chart: ChartConfig) {
-    persist([
-      ...charts,
-      { ...structuredClone(chart), id: crypto.randomUUID(), title: `${chart.title} copy` }
-    ]);
+    persist([...charts, duplicateDashboardChart(chart)]);
   }
 
   function deleteChart(chart: ChartConfig) {
     if (confirm(`Delete "${chart.title}"?`)) persist(charts.filter((item) => item.id !== chart.id));
+  }
+
+  function resizeChart(chart: ChartConfig, size: ChartSize) {
+    if (chart.size === size) return;
+    persist(resizeDashboardChart(charts, chart.id, size));
   }
 
   function moveChart(from: number, to: number) {
@@ -215,8 +218,7 @@
   }
 
   function onDrop(to: number) {
-    if (draggedIndex === null || draggedIndex === to) return;
-    moveChart(draggedIndex, to);
+    if (draggedIndex !== null && draggedIndex !== to) moveChart(draggedIndex, to);
     draggedIndex = null;
   }
 
@@ -275,170 +277,53 @@
 </svelte:head>
 
 <main class="min-h-screen bg-background">
-  <header class="border-b border-border bg-card">
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-      <div>
-        <a href={resolve('/')} class="text-xl font-semibold">YNAD</a>
-        <p class="text-sm text-muted-foreground">
-          {dashboardSubtitle}
-        </p>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm text-muted-foreground">Updated {formatDateTime(lastUpdated)}</span>
-        <button
-          class="icon-button"
-          title="Refresh YNAB data"
-          disabled={!canRefresh || isRefreshing}
-          onclick={refresh}
-        >
-          <RefreshCcw size={17} />
-        </button>
-        <a class="icon-button" title="Settings" href={resolve('/app/settings')}
-          ><Settings size={17} /></a
-        >
-        <button class="button secondary" onclick={() => (editMode = !editMode)}>
-          {editMode ? 'Done' : 'Edit dashboard'}
-        </button>
-        <button class="button primary" onclick={() => openNew('spending')}>
-          <Plus size={17} />
-          Add chart
-        </button>
-      </div>
-    </div>
-  </header>
+  <DashboardToolbar
+    subtitle={dashboardSubtitle}
+    {lastUpdated}
+    {canRefresh}
+    {isRefreshing}
+    {editMode}
+    onRefresh={refresh}
+    onToggleEdit={() => (editMode = !editMode)}
+    onAddChart={openNew}
+  />
 
   <section class="mx-auto max-w-7xl px-5 py-6">
     {#if connectionStatus === 'disconnected'}
-      <div class="rounded-lg border border-border bg-card p-8">
-        <h1 class="text-2xl font-semibold">Connect YNAB</h1>
-        <p class="mt-2 max-w-xl text-muted-foreground">
-          YNAD stores your OAuth token in this browser and fetches YNAB data directly from the YNAB
-          API.
-        </p>
-        <button class="button primary mt-6" onclick={startYnabOAuth}>Connect YNAB</button>
-      </div>
+      <YnabConnectPanel status="disconnected" onConnect={startYnabOAuth} />
     {:else if connectionStatus === 'expired'}
-      <div
-        class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-danger/40 bg-danger/10 p-4 text-danger"
-      >
-        <div>
-          <p class="font-medium">Reconnect YNAB</p>
-          <p class="mt-1 text-sm">
-            The browser token has expired. Local chart cards remain available, but live data will
-            not refresh until you reconnect.
-          </p>
-        </div>
-        <button class="button primary" onclick={startYnabOAuth}>Reconnect YNAB</button>
-      </div>
+      <YnabConnectPanel status="expired" onConnect={startYnabOAuth} />
     {:else if dashboardError}
-      <div
-        class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-danger/40 bg-danger/10 p-4 text-danger"
-      >
-        <div>
-          <p class="font-medium">{getDashboardErrorTitle(dashboardError)}</p>
-          <p class="mt-1 text-sm">{getDashboardErrorMessage(dashboardError)}</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          {#if getYnabErrorCode(dashboardError) === 'reconnect-required'}
-            <button class="button primary" onclick={startYnabOAuth}>Reconnect YNAB</button>
-          {:else if getYnabErrorCode(dashboardError) === 'budget-unavailable'}
-            <a class="button secondary" href={resolve('/app/settings')}>Settings</a>
-          {:else}
-            <button class="button secondary" disabled={!canRefresh} onclick={refresh}>
-              <RefreshCcw size={16} />
-              Refresh
-            </button>
-          {/if}
-        </div>
-      </div>
+      <YnabErrorBanner
+        code={getYnabErrorCode(dashboardError)}
+        title={getDashboardErrorTitle(dashboardError)}
+        message={getDashboardErrorMessage(dashboardError)}
+        {canRefresh}
+        onRefresh={refresh}
+        onReconnect={startYnabOAuth}
+      />
     {/if}
 
     {#if charts.length === 0}
-      <div
-        class="grid min-h-[520px] place-items-center rounded-lg border border-dashed border-border bg-card"
-      >
-        <div class="max-w-md p-6 text-center">
-          <div
-            class="mx-auto grid size-12 place-items-center rounded-md bg-primary/10 text-primary"
-          >
-            <BarChart3 size={24} />
-          </div>
-          <h1 class="mt-5 text-2xl font-semibold">Your dashboard is empty</h1>
-          <p class="mt-2 text-muted-foreground">
-            Add a chart to start building a browser-local finance dashboard.
-          </p>
-          <div class="mt-6 flex flex-wrap justify-center gap-2">
-            <button class="button primary" onclick={() => openNew('balance')}>Balance</button>
-            <button class="button primary" onclick={() => openNew('spending')}>Spending</button>
-            <button class="button primary" onclick={() => openNew('income')}>Income</button>
-            <button class="button secondary" onclick={() => openNew('number')}>Number</button>
-          </div>
-        </div>
-      </div>
+      <EmptyDashboard onAddChart={openNew} />
     {:else}
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-3" role="list">
         {#each charts as chart, index (chart.id)}
-          <div
-            role="listitem"
-            class={cn(
-              'rounded-lg border border-border bg-card p-4 shadow-sm',
-              chart.size === 'medium' && 'md:col-span-2',
-              chart.size === 'large' && 'md:col-span-3'
-            )}
-            draggable={editMode}
-            ondragstart={() => (draggedIndex = index)}
-            ondragover={(event) => event.preventDefault()}
-            ondrop={() => onDrop(index)}
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <div class="flex items-center gap-2">
-                  {#if editMode}<GripVertical size={16} class="text-muted-foreground" />{/if}
-                  <h2 class="font-semibold">{chart.title}</h2>
-                </div>
-                <p class="mt-1 text-xs text-muted-foreground capitalize">
-                  {getChartMetadata(chart, snapshotQuery.data ?? undefined)}
-                </p>
-              </div>
-              <div class="flex items-center gap-1">
-                <button class="icon-button" title="Edit chart" onclick={() => openEdit(chart)}>
-                  <LineChart size={16} />
-                </button>
-                {#if editMode}
-                  <button
-                    class="icon-button md:hidden"
-                    title="Move up"
-                    onclick={() => moveChart(index, index - 1)}>↑</button
-                  >
-                  <button
-                    class="icon-button md:hidden"
-                    title="Move down"
-                    onclick={() => moveChart(index, index + 1)}>↓</button
-                  >
-                  <button
-                    class="icon-button"
-                    title="Duplicate"
-                    onclick={() => duplicateChart(chart)}
-                  >
-                    <Copy size={16} />
-                  </button>
-                  <button
-                    class="icon-button danger"
-                    title="Delete"
-                    onclick={() => deleteChart(chart)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                {/if}
-              </div>
-            </div>
-            <ChartRenderer
-              result={resultFor(chart)}
-              {chart}
-              type={chart.type}
-              currency={snapshotQuery.data?.budget.currencyFormat ?? null}
-            />
-          </div>
+          <ChartCard
+            {chart}
+            result={resultFor(chart)}
+            data={snapshotQuery.data ?? null}
+            {editMode}
+            {index}
+            total={charts.length}
+            onEdit={openEdit}
+            onDuplicate={duplicateChart}
+            onDelete={deleteChart}
+            onResize={resizeChart}
+            onMove={moveChart}
+            onDragStart={(index) => (draggedIndex = index)}
+            {onDrop}
+          />
         {/each}
       </div>
     {/if}

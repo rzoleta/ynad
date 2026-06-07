@@ -103,12 +103,12 @@
   }
 </script>
 
-<div class={cn('mt-5 min-h-48', className)}>
+<div class={cn('mt-5 min-h-48 overflow-hidden', className)}>
   {#if result.status === 'number'}
     <div class="flex h-48 items-center rounded-md bg-background p-5">
-      <div>
+      <div class="min-w-0">
         <p class="text-sm text-muted-foreground capitalize">{result.label}</p>
-        <p class="mt-2 text-4xl font-semibold">
+        <p class="mt-2 text-4xl font-semibold break-words">
           {formatMilliunits(result.valueMilliunits, displayCurrency)}
         </p>
       </div>
@@ -168,12 +168,18 @@
       {/if}
     </div>
   {:else if result.status === 'error'}
-    <div class="grid h-48 place-items-center rounded-md bg-danger/10 p-5 text-center text-danger">
-      {result.message}
+    <div
+      class="grid h-48 place-items-center rounded-md bg-danger/10 p-5 text-center text-danger"
+      role="alert"
+    >
+      <div>
+        <p class="font-medium">Chart could not load</p>
+        <p class="mt-1 text-sm">{result.message}</p>
+      </div>
     </div>
   {:else if type === 'number'}
     <div class="flex h-48 items-center rounded-md bg-background p-5">
-      <div>
+      <div class="min-w-0">
         <p class="text-sm text-muted-foreground">{result.message}</p>
         <p class="mt-2 text-4xl font-semibold">--</p>
       </div>
@@ -184,7 +190,8 @@
     >
       <div>
         <CircleDollarSign class="mx-auto mb-3 text-primary" size={28} />
-        <p>{result.message}</p>
+        <p class="font-medium text-foreground">No matching data</p>
+        <p class="mt-1 text-sm">{result.message}</p>
         <p class="mt-1 text-xs capitalize">{type} chart</p>
       </div>
     </div>

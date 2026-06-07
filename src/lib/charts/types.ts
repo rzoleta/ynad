@@ -61,6 +61,6 @@ export function chartColorForKey(key: string): string {
   return `var(--chart-${colorIndex + 1})`;
 }
 
-export function emptyChartResult(message = 'No matching data.'): ChartEmptyResult {
+export function emptyChartResult(message = 'No matching data for this chart.'): ChartEmptyResult {
   return { status: 'empty', message };
 }
