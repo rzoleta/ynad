@@ -9,7 +9,14 @@ import type {
   NormalizedBudgetData,
   TransactionEntity
 } from '$lib/domain/types';
-import type { ChartResult, PieSlicePoint, TimeSeriesPoint } from './types';
+import type {
+  BreakdownGroup,
+  BreakdownTimeSeriesPoint,
+  ChartBreakdownData,
+  ChartResult,
+  PieSlicePoint,
+  TimeSeriesPoint
+} from './types';
 import { emptyChartResult } from './types';
 
 export type BalanceSeriesData = {
@@ -42,15 +49,29 @@ export function computeBalanceChart(
     return points.length ? { status: 'series', visualization: 'pie', points } : emptyChartResult();
   }
 
-  const series = getBalanceTimeSeries(chart, snapshot, weekStart, chart.granularity ?? 'monthly');
+  const granularity = chart.granularity ?? 'monthly';
+  const series = getBalanceTimeSeries(chart, snapshot, weekStart, granularity);
 
-  return series.points.length
-    ? {
-        status: 'series',
-        visualization: chart.visualization === 'bar' ? 'bar' : 'line',
-        points: series.points
-      }
-    : emptyChartResult();
+  if (!series.points.length) return emptyChartResult();
+
+  const result: Extract<ChartResult, { status: 'series' }> = {
+    status: 'series',
+    visualization: chart.visualization === 'bar' ? 'bar' : 'line',
+    points: series.points
+  };
+
+  if (chart.breakdown === 'account') {
+    const breakdown = computeBalanceBreakdown(
+      series.accounts,
+      snapshot,
+      chart,
+      weekStart,
+      granularity
+    );
+    if (breakdown) result.breakdown = breakdown;
+  }
+
+  return result;
 }
 
 export function getBalanceTimeSeries(
@@ -132,4 +153,64 @@ function transactionsByAccount(
   }
 
   return lookup;
+}
+
+function computeBalanceBreakdown(
+  accounts: AccountEntity[],
+  snapshot: NormalizedBudgetData,
+  chart: ChartConfig,
+  weekStart: WeekStart,
+  granularity: Granularity
+): ChartBreakdownData | undefined {
+  if (accounts.length === 0) return undefined;
+
+  const range = resolveDateRange(chart.dateRange, snapshot);
+  const buckets = makeTimeBuckets(range, granularity, weekStart);
+  const transactionLookup = transactionsByAccount(snapshot.transactions);
+
+  const lastBucketDate = buckets[buckets.length - 1].to;
+  const sortedAccounts = [...accounts].sort((a, b) => {
+    const balanceA = getAccountBalanceAtDate(a, transactionLookup, lastBucketDate);
+    const balanceB = getAccountBalanceAtDate(b, transactionLookup, lastBucketDate);
+    return balanceB - balanceA;
+  });
+
+  const MAX_BREAKDOWN_GROUPS = 5;
+  const topAccounts = sortedAccounts.slice(0, MAX_BREAKDOWN_GROUPS);
+  const overflowAccounts = sortedAccounts.slice(MAX_BREAKDOWN_GROUPS);
+  const hasOverflow = overflowAccounts.length > 0;
+
+  const groups: BreakdownGroup[] = topAccounts.map((account) => ({
+    key: account.id,
+    label: account.name
+  }));
+
+  if (hasOverflow) {
+    groups.push({ key: '__others__', label: 'Others' });
+  }
+
+  const breakdownPoints: BreakdownTimeSeriesPoint[] = buckets.map((bucket) => {
+    const values: Record<string, Milliunits> = {};
+
+    for (const account of topAccounts) {
+      values[account.id] = getAccountBalanceAtDate(account, transactionLookup, bucket.to);
+    }
+
+    if (hasOverflow) {
+      values['__others__'] = overflowAccounts.reduce(
+        (total, account) => total + getAccountBalanceAtDate(account, transactionLookup, bucket.to),
+        0
+      );
+    }
+
+    return {
+      bucketId: bucket.id,
+      label: bucket.label,
+      from: bucket.from,
+      to: bucket.to,
+      values
+    };
+  });
+
+  return { dimension: 'account', groups, breakdownPoints };
 }

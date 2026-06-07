@@ -9,6 +9,7 @@
   import type { WeekStart } from '$lib/app/settings';
   import type { NormalizedBudgetData } from '$lib/domain/types';
   import AccountFilterControl from './account-filter-control.svelte';
+  import BreakdownControl from './breakdown-control.svelte';
   import CategoryFilterControl from './category-filter-control.svelte';
   import ChartPreview from './chart-preview.svelte';
   import ChartSizeControl from './chart-size-control.svelte';
@@ -163,6 +164,7 @@
           </h3>
           <ChartTypeControl {chart} onChange={updateDraft} />
           <VisualizationControl {chart} onChange={updateDraft} />
+          <BreakdownControl {chart} onChange={updateDraft} />
         </section>
 
         <section class="space-y-6 p-5">

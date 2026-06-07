@@ -46,6 +46,7 @@
     '[&_.lc-highlight-point]:stroke-background',
     '[&_.lc-labels-text:not([fill])]:fill-foreground',
     '[&_text]:stroke-transparent',
+    '[&_.lc-bar]:stroke-none',
     className
   )}
   style={chartStyle}

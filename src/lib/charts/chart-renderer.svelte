@@ -5,7 +5,7 @@
   import { CircleDollarSign, LoaderCircle } from '@lucide/svelte';
   import * as Chart from '$lib/components/ui/chart';
   import type { ChartConfig as AppChartConfig, ChartType } from '$lib/app/chart-config';
-  import { chartColorForKey, type ChartResult } from '$lib/charts/types';
+  import { chartColorForKey, type ChartBreakdownData, type ChartResult } from '$lib/charts/types';
   import { formatMilliunits, normalizeCurrencyFormat } from '$lib/domain/currency';
   import type { CurrencyFormat } from '$lib/domain/types';
   import { cn } from '$lib/utils';
@@ -37,6 +37,13 @@
   );
   const seriesColor = $derived(chartColorForKey(seriesColorKey));
 
+  const breakdown = $derived.by<ChartBreakdownData | undefined>(() => {
+    if (result.status !== 'series') return undefined;
+    return result.breakdown;
+  });
+
+  const hasBreakdown = $derived(breakdown !== undefined && breakdown.groups.length > 0);
+
   const points = $derived.by(() => {
     if (result.status !== 'series') return [];
 
@@ -57,12 +64,46 @@
     }));
   });
 
+  const breakdownData = $derived.by(() => {
+    if (!hasBreakdown || !breakdown) return null;
+
+    return breakdown.breakdownPoints.map((point) => {
+      const row: Record<string, string | number> = { label: point.label };
+      for (const group of breakdown.groups) {
+        row[group.key] = point.values[group.key] ?? 0;
+      }
+      return row;
+    });
+  });
+
+  const breakdownSeries = $derived.by(() => {
+    if (!hasBreakdown || !breakdown) return [];
+
+    return breakdown.groups.map((group, index) => ({
+      key: group.key,
+      label: group.label,
+      value: (d: Record<string, unknown>) => (d[group.key] as number) ?? 0,
+      color: group.key === '__others__' ? 'var(--muted-foreground)' : `var(--chart-${index + 1})`
+    }));
+  });
+
   const config = $derived.by<Chart.ChartConfig>(() => {
     if (visual === 'pie') {
       return points.reduce<Chart.ChartConfig>((next, point) => {
         next[point.key] = {
           label: point.label,
           color: point.fill
+        };
+        return next;
+      }, {});
+    }
+
+    if (hasBreakdown && breakdown) {
+      return breakdown.groups.reduce<Chart.ChartConfig>((next, group, index) => {
+        next[group.key] = {
+          label: group.label,
+          color:
+            group.key === '__others__' ? 'var(--muted-foreground)' : `var(--chart-${index + 1})`
         };
         return next;
       }, {});
@@ -83,6 +124,26 @@
   );
 
   const yDomain = $derived.by<[number, number]>(() => {
+    if (hasBreakdown && breakdown) {
+      let min = 0;
+      let max = 0;
+
+      for (const point of breakdown.breakdownPoints) {
+        let positiveSum = 0;
+        let negativeSum = 0;
+        for (const group of breakdown.groups) {
+          const val = point.values[group.key] ?? 0;
+          if (val >= 0) positiveSum += val;
+          else negativeSum += val;
+        }
+        max = Math.max(max, positiveSum);
+        min = Math.min(min, negativeSum);
+      }
+
+      if (min === 0 && max === 0) return [0, 1];
+      return [min, max];
+    }
+
     const values = points.map((point) => point.value);
     const min = Math.min(...values, 0);
     const max = Math.max(...values, 0);
@@ -98,7 +159,13 @@
   const chartHeightClass = $derived(
     size === 'builder' ? 'min-h-[56vh] lg:min-h-[560px]' : 'min-h-[240px]'
   );
-  const aspectClass = $derived(chart.size === 'medium' ? 'aspect-[16/5]' : chart.size === 'small' ? 'aspect-[16/10]' : 'aspect-[16/8]');
+  const aspectClass = $derived(
+    chart.size === 'medium'
+      ? 'aspect-[16/5]'
+      : chart.size === 'small'
+        ? 'aspect-[16/10]'
+        : 'aspect-[16/8]'
+  );
   const placeholderHeightClass = $derived(cn(aspectClass, 'w-full', chartHeightClass));
   const chartAriaLabel = $derived.by(() => {
     const title = chart.title || `${type} chart`;
@@ -163,30 +230,61 @@
       <div class="rounded-md bg-background px-2 py-4" role="img" aria-labelledby={summaryId}>
         <Chart.Container {config} class={cn(aspectClass, chartHeightClass)}>
           {#if visual === 'line'}
-            <AreaChart
-              data={points}
-              x="label"
-              y="value"
-              axis={true}
-              grid={true}
-              {yDomain}
-              series={[{ key: 'value', label: chart.title, color: seriesColor }]}
-              props={{
-                tooltip: { item: { format: formatTooltipValue } },
-                area: {
-                  curve: curveMonotoneX,
-                  fillOpacity: 0.22,
-                  line: {
+            {#if hasBreakdown && breakdownData && breakdownSeries.length > 0}
+              <AreaChart
+                data={breakdownData}
+                x="label"
+                y={(d) =>
+                  Object.values(d)
+                    .filter((v) => typeof v === 'number')
+                    .reduce((a, b) => a + b, 0)}
+                axis={true}
+                grid={true}
+                {yDomain}
+                series={breakdownSeries}
+                seriesLayout="overlap"
+                props={{
+                  tooltip: { item: { format: formatTooltipValue } },
+                  area: {
                     curve: curveMonotoneX,
-                    strokeWidth: 3,
-                    'stroke-linecap': 'round',
-                    'stroke-linejoin': 'round'
-                  }
-                },
-                xAxis: { format: formatXTick },
-                yAxis: { format: formatAxisValue }
-              }}
-            />
+                    fillOpacity: 0.12,
+                    line: {
+                      curve: curveMonotoneX,
+                      strokeWidth: 2.5,
+                      'stroke-linecap': 'round',
+                      'stroke-linejoin': 'round'
+                    }
+                  },
+                  xAxis: { format: formatXTick },
+                  yAxis: { format: formatAxisValue }
+                }}
+              />
+            {:else}
+              <AreaChart
+                data={points}
+                x="label"
+                y="value"
+                axis={true}
+                grid={true}
+                {yDomain}
+                series={[{ key: 'value', label: chart.title, color: seriesColor }]}
+                props={{
+                  tooltip: { item: { format: formatTooltipValue } },
+                  area: {
+                    curve: curveMonotoneX,
+                    fillOpacity: 0.22,
+                    line: {
+                      curve: curveMonotoneX,
+                      strokeWidth: 3,
+                      'stroke-linecap': 'round',
+                      'stroke-linejoin': 'round'
+                    }
+                  },
+                  xAxis: { format: formatXTick },
+                  yAxis: { format: formatAxisValue }
+                }}
+              />
+            {/if}
           {:else if visual === 'pie'}
             <PieChart
               data={points}
@@ -199,6 +297,26 @@
               padAngle={0.02}
               labels={true}
               props={{ tooltip: { item: { format: formatTooltipValue } } }}
+            />
+          {:else if hasBreakdown && breakdownData && breakdownSeries.length > 0}
+            <BarChart
+              data={breakdownData}
+              x="label"
+              y={(d) =>
+                Object.values(d)
+                  .filter((v) => typeof v === 'number')
+                  .reduce((a, b) => a + b, 0)}
+              axis={true}
+              grid={true}
+              xScale={scaleBand().padding(0.32)}
+              {yDomain}
+              series={breakdownSeries}
+              seriesLayout="stack"
+              props={{
+                tooltip: { item: { format: formatTooltipValue } },
+                xAxis: { format: formatXTick },
+                yAxis: { format: formatAxisValue }
+              }}
             />
           {:else}
             <BarChart

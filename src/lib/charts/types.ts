@@ -1,3 +1,4 @@
+import type { Breakdown } from '$lib/app/chart-config';
 import type { ISODate, Milliunits } from '$lib/domain/types';
 
 export type ChartEmptyResult = {
@@ -24,10 +25,30 @@ export type PieSlicePoint = {
   valueMilliunits: Milliunits;
 };
 
+export type BreakdownGroup = {
+  key: string;
+  label: string;
+};
+
+export type BreakdownTimeSeriesPoint = {
+  bucketId: string;
+  label: string;
+  from: ISODate;
+  to: ISODate;
+  values: Record<string, Milliunits>;
+};
+
+export type ChartBreakdownData = {
+  dimension: Exclude<Breakdown, 'none'>;
+  groups: BreakdownGroup[];
+  breakdownPoints: BreakdownTimeSeriesPoint[];
+};
+
 export type ChartSeriesResult = {
   status: 'series';
   visualization: 'line' | 'bar' | 'pie';
   points: TimeSeriesPoint[] | PieSlicePoint[];
+  breakdown?: ChartBreakdownData;
   excluded?: Array<{
     key: string;
     label: string;

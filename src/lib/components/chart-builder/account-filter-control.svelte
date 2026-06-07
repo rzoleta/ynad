@@ -19,9 +19,7 @@
 
   const groups = $derived(groupAccounts(accounts));
   const allIds = $derived(accounts.map((account) => account.id));
-  const selectedIds = $derived(
-    chart.accounts.mode === 'all' ? allIds : chart.accounts.ids
-  );
+  const selectedIds = $derived(chart.accounts.mode === 'all' ? allIds : chart.accounts.ids);
 
   const filteredGroups = $derived(
     query.trim() === ''
@@ -61,11 +59,15 @@
   <div class="flex items-center justify-between">
     <span>Accounts</span>
     <div class="flex items-center gap-2">
-      <button type="button" class="text-xs text-muted-foreground hover:underline" onclick={selectAll}
-        >All</button
+      <button
+        type="button"
+        class="text-xs text-muted-foreground hover:underline"
+        onclick={selectAll}>All</button
       >
-      <button type="button" class="text-xs text-muted-foreground hover:underline" onclick={selectNone}
-        >None</button
+      <button
+        type="button"
+        class="text-xs text-muted-foreground hover:underline"
+        onclick={selectNone}>None</button
       >
     </div>
   </div>
@@ -87,7 +89,11 @@
             value={query}
             oninput={(e) => (query = e.currentTarget.value)}
             onkeydown={(e) => {
-              if (['ArrowDown', 'ArrowUp', 'Enter', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
+              if (
+                ['ArrowDown', 'ArrowUp', 'Enter', 'Home', 'End', 'PageUp', 'PageDown'].includes(
+                  e.key
+                )
+              ) {
                 e.stopPropagation();
               }
             }}

@@ -6,6 +6,7 @@ export const chartTypeSchema = z.enum(['balance', 'spending', 'income', 'number'
 export const visualizationSchema = z.enum(['line', 'bar', 'pie']);
 export const chartSizeSchema = z.enum(['small', 'medium', 'large']);
 export const granularitySchema = z.enum(['daily', 'weekly', 'monthly', 'yearly']);
+export const breakdownSchema = z.enum(['none', 'account', 'category', 'payee']);
 
 export const datePresets = [
   'this-month',
@@ -67,6 +68,7 @@ export const chartConfigSchema = z.object({
   type: chartTypeSchema,
   size: chartSizeSchema,
   visualization: visualizationSchema.optional(),
+  breakdown: breakdownSchema.optional(),
   dateRange: dateRangeSchema,
   granularity: granularitySchema.optional(),
   accounts: idFilterSchema,
@@ -85,6 +87,7 @@ export type ChartType = z.infer<typeof chartTypeSchema>;
 export type Visualization = z.infer<typeof visualizationSchema>;
 export type ChartSize = z.infer<typeof chartSizeSchema>;
 export type Granularity = z.infer<typeof granularitySchema>;
+export type Breakdown = z.infer<typeof breakdownSchema>;
 export type DatePreset = (typeof datePresets)[number];
 export type DateRange = z.infer<typeof dateRangeSchema>;
 export type IdFilter = z.infer<typeof idFilterSchema>;
@@ -117,6 +120,7 @@ export function createDefaultChart(type: ChartType): ChartConfig {
     type,
     size: 'medium',
     visualization: type === 'number' ? undefined : 'bar',
+    breakdown: 'none',
     dateRange: { preset: 'last-12-months' },
     accounts: allIdFilter(),
     categories: allIdFilter(),
@@ -135,6 +139,7 @@ export function normalizeChartForType(chart: ChartConfig): ChartConfig {
     const metric = next.numberMetric ?? 'spending';
 
     next.visualization = undefined;
+    next.breakdown = undefined;
     next.granularity = undefined;
     next.numberMetric = metric;
     next.numberOperation = normalizeNumberOperation(metric, next.numberOperation);
@@ -148,6 +153,12 @@ export function normalizeChartForType(chart: ChartConfig): ChartConfig {
   next.numberMetric = undefined;
   next.numberOperation = undefined;
   next.numberPeriod = undefined;
+
+  if (next.visualization === 'pie') {
+    next.breakdown = undefined;
+  } else {
+    next.breakdown = normalizeBreakdownForType(next.type, next.breakdown);
+  }
 
   if (next.type === 'balance') {
     next.categories = undefined;
@@ -279,6 +290,22 @@ function defaultVisualizationForType(type: Exclude<ChartType, 'number'>): Visual
   return type === 'balance' ? 'line' : 'bar';
 }
 
+function normalizeBreakdownForType(type: ChartType, breakdown: Breakdown | undefined): Breakdown {
+  if (!breakdown || breakdown === 'none') return 'none';
+
+  if (type === 'balance') {
+    return breakdown === 'account' ? 'account' : 'none';
+  }
+
+  if (type === 'spending' || type === 'income') {
+    if (breakdown === 'account' || breakdown === 'category' || breakdown === 'payee') {
+      return breakdown;
+    }
+  }
+
+  return 'none';
+}
+
 function normalizeNumberOperation(
   metric: NumberMetric,
   operation: NumberOperation | undefined
@@ -325,4 +352,24 @@ function titleCase(value: string) {
     .split('-')
     .map((word) => `${word.slice(0, 1).toUpperCase()}${word.slice(1)}`)
     .join(' ');
+}
+
+export function getBreakdownOptions(type: ChartType): Array<{ value: Breakdown; label: string }> {
+  if (type === 'balance') {
+    return [
+      { value: 'none', label: 'None' },
+      { value: 'account', label: 'Account' }
+    ];
+  }
+
+  if (type === 'spending' || type === 'income') {
+    return [
+      { value: 'none', label: 'None' },
+      { value: 'account', label: 'Account' },
+      { value: 'category', label: 'Category' },
+      { value: 'payee', label: 'Payee' }
+    ];
+  }
+
+  return [{ value: 'none', label: 'None' }];
 }

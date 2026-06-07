@@ -1,10 +1,18 @@
-import type { ChartConfig, Granularity } from '$lib/app/chart-config';
+import type { Breakdown, ChartConfig, Granularity } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
 import { defaultAccountsForChart } from '$lib/domain/accounts';
+import { getCategoryLabel, UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categories';
 import { makeTimeBuckets, resolveDateRange, isIsoDateInRange } from '$lib/domain/dates';
 import { getPayeeKey } from '$lib/domain/payees';
-import type { NormalizedBudgetData, TransactionEntry } from '$lib/domain/types';
-import type { ChartResult, PieSlicePoint, TimeSeriesPoint } from './types';
+import type { Milliunits, NormalizedBudgetData, TransactionEntry } from '$lib/domain/types';
+import type {
+  BreakdownGroup,
+  BreakdownTimeSeriesPoint,
+  ChartBreakdownData,
+  ChartResult,
+  PieSlicePoint,
+  TimeSeriesPoint
+} from './types';
 import { emptyChartResult } from './types';
 
 export type IncomeSeriesData = {
@@ -25,15 +33,30 @@ export function computeIncomeChart(
     return points.length ? { status: 'series', visualization: 'pie', points } : emptyChartResult();
   }
 
-  const series = getIncomeTimeSeries(chart, snapshot, weekStart, chart.granularity ?? 'monthly');
+  const granularity = chart.granularity ?? 'monthly';
+  const series = getIncomeTimeSeries(chart, snapshot, weekStart, granularity);
 
-  return series.entries.length
-    ? {
-        status: 'series',
-        visualization: chart.visualization === 'line' ? 'line' : 'bar',
-        points: series.points
-      }
-    : emptyChartResult();
+  if (!series.entries.length) return emptyChartResult();
+
+  const result: Extract<ChartResult, { status: 'series' }> = {
+    status: 'series',
+    visualization: chart.visualization === 'line' ? 'line' : 'bar',
+    points: series.points
+  };
+
+  if (chart.breakdown && chart.breakdown !== 'none') {
+    const breakdown = computeIncomeBreakdown(
+      chart.breakdown,
+      series.entries,
+      chart,
+      snapshot,
+      weekStart,
+      granularity
+    );
+    if (breakdown) result.breakdown = breakdown;
+  }
+
+  return result;
 }
 
 export function getIncomeTimeSeries(
@@ -150,4 +173,102 @@ function normalizeLabel(value: string | undefined): string {
 
 function isInternalCategoryGroup(groupName: string): boolean {
   return groupName === 'internal master category' || groupName === 'internal master categories';
+}
+
+function computeIncomeBreakdown(
+  dimension: Exclude<Breakdown, 'none'>,
+  entries: TransactionEntry[],
+  chart: ChartConfig,
+  snapshot: NormalizedBudgetData,
+  weekStart: WeekStart,
+  granularity: Granularity
+): ChartBreakdownData | undefined {
+  const range = resolveDateRange(chart.dateRange, snapshot);
+  const buckets = makeTimeBuckets(range, granularity, weekStart);
+
+  const groupMap = new Map<string, BreakdownGroup>();
+  const entriesByGroup = new Map<string, TransactionEntry[]>();
+
+  for (const entry of entries) {
+    const { key, label } = getIncomeBreakdownGroup(entry, dimension, snapshot);
+    if (!groupMap.has(key)) {
+      groupMap.set(key, { key, label });
+      entriesByGroup.set(key, []);
+    }
+    entriesByGroup.get(key)!.push(entry);
+  }
+
+  if (groupMap.size === 0) return undefined;
+
+  const groupTotals = new Map<string, Milliunits>();
+  for (const [key, groupEntries] of entriesByGroup) {
+    groupTotals.set(
+      key,
+      groupEntries.reduce((total, entry) => total + entry.amountMilliunits, 0)
+    );
+  }
+
+  const sortedGroups = [...groupMap.values()].sort(
+    (a, b) => (groupTotals.get(b.key) ?? 0) - (groupTotals.get(a.key) ?? 0)
+  );
+
+  const MAX_BREAKDOWN_GROUPS = 5;
+  const topGroups = sortedGroups.slice(0, MAX_BREAKDOWN_GROUPS);
+  const overflowGroups = sortedGroups.slice(MAX_BREAKDOWN_GROUPS);
+  const hasOverflow = overflowGroups.length > 0;
+
+  const groups = hasOverflow ? [...topGroups, { key: '__others__', label: 'Others' }] : topGroups;
+
+  const breakdownPoints: BreakdownTimeSeriesPoint[] = buckets.map((bucket) => {
+    const values: Record<string, Milliunits> = {};
+
+    for (const group of topGroups) {
+      const groupEntries = entriesByGroup.get(group.key) ?? [];
+      values[group.key] = groupEntries
+        .filter((entry) => entry.date >= bucket.from && entry.date <= bucket.to)
+        .reduce((total, entry) => total + entry.amountMilliunits, 0);
+    }
+
+    if (hasOverflow) {
+      let othersTotal = 0;
+      for (const group of overflowGroups) {
+        const groupEntries = entriesByGroup.get(group.key) ?? [];
+        othersTotal += groupEntries
+          .filter((entry) => entry.date >= bucket.from && entry.date <= bucket.to)
+          .reduce((total, entry) => total + entry.amountMilliunits, 0);
+      }
+      values['__others__'] = othersTotal;
+    }
+
+    return {
+      bucketId: bucket.id,
+      label: bucket.label,
+      from: bucket.from,
+      to: bucket.to,
+      values
+    };
+  });
+
+  return { dimension, groups, breakdownPoints };
+}
+
+function getIncomeBreakdownGroup(
+  entry: TransactionEntry,
+  dimension: Exclude<Breakdown, 'none'>,
+  snapshot: NormalizedBudgetData
+): { key: string; label: string } {
+  if (dimension === 'account') {
+    const account = snapshot.accountById.get(entry.accountId);
+    return { key: entry.accountId, label: account?.name ?? 'Unknown Account' };
+  }
+
+  if (dimension === 'category') {
+    const key = entry.categoryId ?? UNCATEGORIZED_CATEGORY_ID;
+    const label = getCategoryLabel(entry.categoryId, snapshot.categoryById);
+    return { key, label };
+  }
+
+  const key = getPayeeKey(entry.payeeId, entry.payeeName) ?? 'unknown-payee';
+  const label = entry.payeeName || 'Unknown Payee';
+  return { key, label };
 }
