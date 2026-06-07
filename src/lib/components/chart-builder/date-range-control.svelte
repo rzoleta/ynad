@@ -17,6 +17,7 @@
     { value: 'last-month', label: 'Last Month' },
     { value: 'last-year', label: 'Last Year' },
     { value: 'last-12-months', label: 'Last 12 Months' },
+    { value: 'last-24-months', label: 'Last 24 Months' },
     { value: 'custom', label: 'Custom' }
   ] satisfies Array<{ value: DatePreset; label: string }>;
 

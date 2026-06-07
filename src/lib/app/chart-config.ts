@@ -15,6 +15,7 @@ export const datePresetSchema = z.enum([
   'last-month',
   'last-year',
   'last-12-months',
+  'last-24-months',
   'custom'
 ]);
 
@@ -317,7 +318,8 @@ function dateRangeLabel(dateRange: DateRange) {
     'this-year': 'This year',
     'last-month': 'Last month',
     'last-year': 'Last year',
-    'last-12-months': 'Last 12 months'
+    'last-12-months': 'Last 12 months',
+    'last-24-months': 'Last 24 months'
   } satisfies Record<Exclude<DatePreset, 'custom'>, string>;
 
   return labels[dateRange.preset];

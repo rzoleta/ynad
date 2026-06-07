@@ -22,6 +22,7 @@ export type DatePreset =
   | 'last-month'
   | 'last-year'
   | 'last-12-months'
+  | 'last-24-months'
   | 'custom';
 
 export type ResolvedDateRange = {
@@ -52,6 +53,9 @@ export function resolveDateRange(
   }
   if (config.preset === 'last-12-months') {
     return localDateRange(startOfMonth(subMonths(today, 11)), today);
+  }
+  if (config.preset === 'last-24-months') {
+    return localDateRange(startOfMonth(subMonths(today, 23)), today);
   }
 
   return localDateRange(startOfMonth(today), endOfMonth(today));
