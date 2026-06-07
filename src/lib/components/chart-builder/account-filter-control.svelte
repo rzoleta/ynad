@@ -1,13 +1,9 @@
 <script lang="ts">
+  import { Search } from '@lucide/svelte';
+  import * as Select from '$lib/components/ui/select/index.js';
   import type { ChartConfig } from '$lib/app/chart-config';
   import type { AccountEntity } from '$lib/domain/types';
-  import { cn } from '$lib/utils';
-  import {
-    getAccountGroupKey,
-    groupAccounts,
-    selectedIdSet,
-    toggleSelectedId
-  } from './filter-summary';
+  import { groupAccounts } from './filter-summary';
 
   let {
     chart,
@@ -19,138 +15,106 @@
     onChange: (chart: ChartConfig) => void;
   } = $props();
 
+  let query = $state('');
+
   const groups = $derived(groupAccounts(accounts));
-  const selectedIds = $derived(selectedIdSet(chart.accounts));
-  const selectedCount = $derived(
-    chart.accounts.mode === 'selected' ? chart.accounts.ids.length : 0
+  const allIds = $derived(accounts.map((account) => account.id));
+  const selectedIds = $derived(
+    chart.accounts.mode === 'all' ? allIds : chart.accounts.ids
   );
 
-  function setMode(mode: 'all' | 'selected') {
-    if (mode === 'all') {
-      onChange({ ...chart, accounts: { mode: 'all' } });
-      return;
-    }
+  const filteredGroups = $derived(
+    query.trim() === ''
+      ? groups
+      : groups
+          .map((group) => ({
+            ...group,
+            accounts: group.accounts.filter((account) =>
+              account.name.toLowerCase().includes(query.trim().toLowerCase())
+            )
+          }))
+          .filter((group) => group.accounts.length > 0)
+  );
 
-    onChange({
-      ...chart,
-      accounts: {
-        mode: 'selected',
-        ids: chart.accounts.mode === 'selected' ? chart.accounts.ids : []
-      }
-    });
+  const triggerLabel = $derived(
+    selectedIds.length === allIds.length
+      ? 'All accounts'
+      : selectedIds.length === 0
+        ? 'No accounts'
+        : `${selectedIds.length} account${selectedIds.length === 1 ? '' : 's'}`
+  );
+
+  function handleChange(nextIds: string[]) {
+    onChange({ ...chart, accounts: { mode: 'selected', ids: nextIds } });
   }
 
-  function toggleAccount(accountId: string) {
-    onChange({ ...chart, accounts: toggleSelectedId(chart.accounts, accountId) });
+  function selectAll() {
+    onChange({ ...chart, accounts: { mode: 'selected', ids: allIds } });
   }
 
-  function selectAccounts(accountIds: string[]) {
-    onChange({ ...chart, accounts: { mode: 'selected', ids: accountIds } });
+  function selectNone() {
+    onChange({ ...chart, accounts: { mode: 'selected', ids: [] } });
   }
 </script>
 
-<div class="space-y-3">
-  <div class="field">
+<div class="field">
+  <div class="flex items-center justify-between">
     <span>Accounts</span>
-    <div class="grid grid-cols-2 overflow-hidden rounded-md border border-border bg-background">
-      <button
-        type="button"
-        class={cn(
-          'min-h-10 border-r border-border px-3 text-sm transition hover:bg-muted',
-          chart.accounts.mode === 'all' && 'bg-primary text-primary-foreground hover:bg-primary'
-        )}
-        aria-pressed={chart.accounts.mode === 'all'}
-        onclick={() => setMode('all')}
+    <div class="flex items-center gap-2">
+      <button type="button" class="text-xs text-muted-foreground hover:underline" onclick={selectAll}
+        >All</button
       >
-        All accounts
-      </button>
-      <button
-        type="button"
-        class={cn(
-          'min-h-10 px-3 text-sm transition hover:bg-muted',
-          chart.accounts.mode === 'selected' &&
-            'bg-primary text-primary-foreground hover:bg-primary'
-        )}
-        aria-pressed={chart.accounts.mode === 'selected'}
-        onclick={() => setMode('selected')}
+      <button type="button" class="text-xs text-muted-foreground hover:underline" onclick={selectNone}
+        >None</button
       >
-        Selected{selectedCount ? ` (${selectedCount})` : ''}
-      </button>
     </div>
   </div>
-
-  {#if chart.accounts.mode === 'selected'}
-    <div class="flex flex-wrap gap-2">
-      <button
-        type="button"
-        class="button secondary min-h-8 px-3 py-1 text-xs"
-        onclick={() =>
-          selectAccounts(
-            accounts
-              .filter((account) => getAccountGroupKey(account) === 'cash')
-              .map((account) => account.id)
-          )}
-      >
-        All Cash
-      </button>
-      <button
-        type="button"
-        class="button secondary min-h-8 px-3 py-1 text-xs"
-        onclick={() =>
-          selectAccounts(
-            accounts
-              .filter((account) => getAccountGroupKey(account) === 'tracking')
-              .map((account) => account.id)
-          )}
-      >
-        All Tracking
-      </button>
-      <button
-        type="button"
-        class="button secondary min-h-8 px-3 py-1 text-xs"
-        onclick={() =>
-          selectAccounts(
-            accounts.filter((account) => !account.closed).map((account) => account.id)
-          )}
-      >
-        All Active
-      </button>
-    </div>
-
-    <div class="max-h-72 overflow-y-auto rounded-md border border-border bg-background">
-      {#if groups.length === 0}
-        <p class="p-3 text-sm text-muted-foreground">No accounts loaded.</p>
+  <Select.Root type="multiple" value={selectedIds} onValueChange={handleChange}>
+    <Select.Trigger class="w-full">
+      {triggerLabel}
+    </Select.Trigger>
+    <Select.Content class="max-h-[300px] overflow-y-auto">
+      <div class="sticky top-0 z-10 border-b border-border bg-popover px-2 py-1.5">
+        <div class="relative">
+          <Search
+            class="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-muted-foreground"
+            size={14}
+          />
+          <input
+            type="text"
+            placeholder="Search accounts..."
+            class="w-full rounded-sm border border-input bg-background py-1 pr-2 pl-7 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            value={query}
+            oninput={(e) => (query = e.currentTarget.value)}
+            onkeydown={(e) => {
+              if (['ArrowDown', 'ArrowUp', 'Enter', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
+                e.stopPropagation();
+              }
+            }}
+          />
+        </div>
+      </div>
+      {#if filteredGroups.length === 0}
+        <div class="px-2 py-3 text-sm text-muted-foreground">No matching accounts.</div>
       {:else}
-        {#each groups as group (group.key)}
-          <div class="border-b border-border last:border-b-0">
-            <div
-              class="bg-muted/60 px-3 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-            >
-              {group.label}
-            </div>
-            <div class="divide-y divide-border">
-              {#each group.accounts as account (account.id)}
-                <label
-                  class="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-muted/70"
-                >
-                  <input
-                    type="checkbox"
-                    class="size-4 accent-primary"
-                    checked={selectedIds.has(account.id)}
-                    onchange={() => toggleAccount(account.id)}
-                  />
-                  <span class="min-w-0 flex-1 truncate">{account.name}</span>
+        {#each filteredGroups as group (group.key)}
+          <Select.Group>
+            <Select.GroupHeading>{group.label}</Select.GroupHeading>
+            {#each group.accounts as account (account.id)}
+              <Select.Item value={account.id} label={account.name}>
+                <span class="flex items-center gap-2">
+                  <span class="truncate">{account.name}</span>
                   {#if account.closed}
                     <span class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       Closed
                     </span>
                   {/if}
-                </label>
-              {/each}
-            </div>
-          </div>
+                </span>
+              </Select.Item>
+            {/each}
+          </Select.Group>
         {/each}
       {/if}
-    </div>
-  {/if}
+    </Select.Content>
+  </Select.Root>
 </div>
