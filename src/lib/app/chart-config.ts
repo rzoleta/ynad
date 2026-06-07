@@ -99,12 +99,15 @@ const validNumberOperations: Record<NumberMetric, NumberOperation[]> = {
 export function createDefaultChart(type: ChartType): ChartConfig {
   return normalizeChartForType({
     id: createChartId(),
-    title: 'New chart',
+    title: 'Monthly Spending',
     titleEdited: false,
     type,
-    size: type === 'number' ? 'small' : 'medium',
-    dateRange: { preset: 'this-month' },
-    accounts: allIdFilter()
+    size: 'medium',
+    visualization: type === 'number' ? undefined : 'bar',
+    dateRange: { preset: 'last-12-months' },
+    accounts: allIdFilter(),
+    categories: allIdFilter(),
+    payees: allPayeeFilter()
   });
 }
 
