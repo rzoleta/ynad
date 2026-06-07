@@ -16,6 +16,7 @@ export const datePresets = [
   'last-year',
   'last-12-months',
   'last-24-months',
+  'all-time',
   'custom'
 ] as const;
 
@@ -26,6 +27,7 @@ export const datePresetOptions = [
   { value: 'last-year', label: 'Last Year', metadataLabel: 'Last year' },
   { value: 'last-12-months', label: 'Last 12 Months', metadataLabel: 'Last 12 months' },
   { value: 'last-24-months', label: 'Last 24 Months', metadataLabel: 'Last 24 months' },
+  { value: 'all-time', label: 'All Time', metadataLabel: 'All time' },
   { value: 'custom', label: 'Custom', metadataLabel: 'Custom' }
 ] satisfies Array<{ value: (typeof datePresets)[number]; label: string; metadataLabel: string }>;
 

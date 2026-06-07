@@ -49,7 +49,7 @@ function computeBalanceNumber(
   granularity: Granularity
 ): ChartNumberResult | ReturnType<typeof emptyChartResult> {
   if (operation === 'current') {
-    const range = resolveDateRange(chart.dateRange);
+    const range = resolveDateRange(chart.dateRange, snapshot);
     const balance = getCombinedBalanceAtDate(chart, snapshot, range.to);
 
     return balance.accounts.length

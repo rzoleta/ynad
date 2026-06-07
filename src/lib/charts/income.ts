@@ -43,7 +43,7 @@ export function getIncomeTimeSeries(
   granularity: Granularity
 ): IncomeSeriesData {
   const entries = getIncomeEntries(chart, snapshot);
-  const range = resolveDateRange(chart.dateRange);
+  const range = resolveDateRange(chart.dateRange, snapshot);
   const buckets = makeTimeBuckets(range, granularity, weekStart);
 
   return {
@@ -64,7 +64,7 @@ export function getIncomeEntries(
   chart: ChartConfig,
   snapshot: NormalizedBudgetData
 ): TransactionEntry[] {
-  const range = resolveDateRange(chart.dateRange);
+  const range = resolveDateRange(chart.dateRange, snapshot);
 
   return snapshot.entries.filter((entry) => {
     if (!isIsoDateInRange(entry.date, range)) return false;

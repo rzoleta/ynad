@@ -14,7 +14,7 @@ import {
 } from 'date-fns';
 import type { ChartConfig, DatePreset } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
-import type { ISODate } from './types';
+import type { ISODate, TransactionEntity } from './types';
 
 export type ResolvedDateRange = {
   from: ISODate;
@@ -28,11 +28,21 @@ export type TimeBucket = {
   to: ISODate;
 };
 
+type DateRangeContext = {
+  transactions?: Pick<TransactionEntity, 'date'>[];
+};
+
 export function resolveDateRange(
   config: ChartConfig['dateRange'],
+  context: DateRangeContext = {},
   today = new Date()
 ): ResolvedDateRange {
   if (config.preset === 'custom') return { from: config.from, to: config.to };
+  if (config.preset === 'all-time') {
+    const earliestTransactionDate = getEarliestTransactionDate(context.transactions);
+    const to = formatLocalISODate(today);
+    return { from: earliestTransactionDate ?? to, to };
+  }
   if (config.preset === 'this-year') return localDateRange(startOfYear(today), endOfYear(today));
   if (config.preset === 'last-month') {
     const date = subMonths(today, 1);
@@ -95,6 +105,16 @@ export function isIsoDateInRange(date: ISODate, range: ResolvedDateRange): boole
 
 function localDateRange(from: Date, to: Date): ResolvedDateRange {
   return { from: formatLocalISODate(from), to: formatLocalISODate(to) };
+}
+
+function getEarliestTransactionDate(
+  transactions: Pick<TransactionEntity, 'date'>[] | undefined
+): ISODate | null {
+  if (!transactions?.length) return null;
+  return transactions.reduce<ISODate | null>((earliest, transaction) => {
+    if (!earliest || transaction.date < earliest) return transaction.date;
+    return earliest;
+  }, null);
 }
 
 function parseISODate(value: ISODate): Date {

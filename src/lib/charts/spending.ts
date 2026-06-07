@@ -46,7 +46,7 @@ export function getSpendingTimeSeries(
   granularity: Granularity
 ): SpendingSeriesData {
   const entries = getSpendingEntries(chart, snapshot);
-  const range = resolveDateRange(chart.dateRange);
+  const range = resolveDateRange(chart.dateRange, snapshot);
   const buckets = makeTimeBuckets(range, granularity, weekStart);
 
   return {
@@ -67,7 +67,7 @@ export function getSpendingEntries(
   chart: ChartConfig,
   snapshot: NormalizedBudgetData
 ): TransactionEntry[] {
-  const range = resolveDateRange(chart.dateRange);
+  const range = resolveDateRange(chart.dateRange, snapshot);
 
   return snapshot.entries.filter((entry) => {
     if (!isIsoDateInRange(entry.date, range)) return false;

@@ -22,7 +22,7 @@ export function computeBalanceChart(
   snapshot: NormalizedBudgetData,
   weekStart: WeekStart
 ): ChartResult {
-  const range = resolveDateRange(chart.dateRange);
+  const range = resolveDateRange(chart.dateRange, snapshot);
   const accounts = getBalanceAccounts(chart, snapshot);
 
   if (accounts.length === 0) return emptyChartResult();
@@ -59,7 +59,7 @@ export function getBalanceTimeSeries(
   weekStart: WeekStart,
   granularity: Granularity
 ): BalanceSeriesData {
-  const range = resolveDateRange(chart.dateRange);
+  const range = resolveDateRange(chart.dateRange, snapshot);
   const buckets = makeTimeBuckets(range, granularity, weekStart);
   const accounts = getBalanceAccounts(chart, snapshot);
   const transactionLookup = transactionsByAccount(snapshot.transactions);
