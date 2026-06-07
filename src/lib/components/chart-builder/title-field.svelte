@@ -3,10 +3,12 @@
 
   let {
     chart,
-    onChange
+    onChange,
+    compact = false
   }: {
     chart: ChartConfig;
     onChange: (chart: ChartConfig) => void;
+    compact?: boolean;
   } = $props();
 
   function updateTitle(event: Event) {
@@ -16,6 +18,6 @@
 </script>
 
 <label class="field">
-  <span>Title</span>
-  <input value={chart.title} oninput={updateTitle} />
+  <span class={compact ? 'text-xs text-muted-foreground' : undefined}>Title</span>
+  <input class="max-w-[20rem]" value={chart.title} oninput={updateTitle} />
 </label>
