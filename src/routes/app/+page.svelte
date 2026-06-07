@@ -432,7 +432,12 @@
                 {/if}
               </div>
             </div>
-            <ChartRenderer result={resultFor(chart)} {chart} type={chart.type} />
+            <ChartRenderer
+              result={resultFor(chart)}
+              {chart}
+              type={chart.type}
+              currency={snapshotQuery.data?.budget.currencyFormat ?? null}
+            />
           </div>
         {/each}
       </div>

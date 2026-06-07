@@ -31,5 +31,11 @@
       {chart.type}
     </span>
   </div>
-  <ChartRenderer {result} {chart} type={chart.type} class="mt-3" />
+  <ChartRenderer
+    {result}
+    {chart}
+    type={chart.type}
+    currency={data?.budget.currencyFormat ?? null}
+    class="mt-3"
+  />
 </div>
