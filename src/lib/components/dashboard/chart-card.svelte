@@ -56,7 +56,6 @@
   const cardSpan = $derived(
     chart.size === 'large' ? 'md:col-span-3' : chart.size === 'medium' ? 'md:col-span-2' : ''
   );
-  const typeLabel = $derived(chart.type === 'number' ? 'Number' : `${chart.type} chart`);
   const canMoveUp = $derived(index > 0);
   const canMoveDown = $derived(index < total - 1);
 
@@ -125,11 +124,6 @@
       <div class="min-w-0">
         <div class="flex min-w-0 flex-wrap items-center gap-2">
           <h2 class="min-w-0 font-semibold break-words">{chart.title}</h2>
-          <span
-            class="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground capitalize"
-          >
-            {typeLabel}
-          </span>
         </div>
         <p class="mt-1 text-xs leading-5 text-muted-foreground">
           {getChartMetadata(chart, data ?? undefined)}
