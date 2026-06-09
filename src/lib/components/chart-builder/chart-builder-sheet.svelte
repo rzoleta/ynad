@@ -185,7 +185,7 @@
       </form>
 
       <div class="min-w-0 border-t border-border bg-background/65 p-5 lg:border-t-0 lg:border-l">
-        <div class="lg:sticky lg:top-5">
+        <div class="lg:sticky lg:top-5 flex min-h-[calc(100vh-2.5rem)] flex-col">
           <div class="mb-4 flex flex-wrap items-end gap-3">
             <div class="flex min-w-0 flex-1 flex-row gap-5">
               <TitleField {chart} onChange={updateDraft} compact />
@@ -194,7 +194,12 @@
             <GranularityControl {chart} onChange={updateDraft} compact />
             <DateRangeControl {chart} onChange={updateDraft} compact />
           </div>
-          <ChartPreview {chart} {data} {weekStart} />
+          <div class="flex flex-1 flex-col">
+            <div class="flex-[1]"></div>
+            <div class="flex-[2] flex justify-center">
+              <ChartPreview {chart} {data} {weekStart} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
