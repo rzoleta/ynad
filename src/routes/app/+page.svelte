@@ -214,11 +214,19 @@
     }
 
     if (!snapshotQuery.data && connectionStatus === 'expired') {
-      return { status: 'error', message: 'Reconnect YNAB to refresh this chart.' };
+      return {
+        status: 'error',
+        message: 'Reconnect YNAB to refresh this chart.',
+        code: 'reconnect-required'
+      };
     }
 
     if (!snapshotQuery.data && dashboardError) {
-      return { status: 'error', message: getDashboardErrorMessage(dashboardError) };
+      return {
+        status: 'error',
+        message: getDashboardErrorMessage(dashboardError),
+        code: getYnabErrorCode(dashboardError)
+      };
     }
 
     return computeChart(normalized, snapshotQuery.data ?? null, getEffectiveWeekStart());
@@ -269,7 +277,7 @@
   <section class="mx-auto max-w-7xl px-5 py-6">
     {#if connectionStatus === 'disconnected'}
       <YnabConnectPanel status="disconnected" onConnect={startYnabOAuth} />
-    {:else if connectionStatus === 'expired'}
+    {:else if connectionStatus === 'expired' && charts.length === 0}
       <YnabConnectPanel status="expired" onConnect={startYnabOAuth} />
     {:else if dashboardError}
       <YnabErrorBanner
@@ -303,6 +311,7 @@
             onMove={moveChart}
             onDragStart={(index) => (draggedIndex = index)}
             {onDrop}
+            onReconnect={startYnabOAuth}
           />
         {/each}
       </div>

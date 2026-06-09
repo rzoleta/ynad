@@ -17,6 +17,7 @@
     currency = null,
     loading = false,
     size = 'default',
+    onReconnect,
     class: className
   }: {
     result: ChartResult;
@@ -25,6 +26,7 @@
     currency?: CurrencyFormat | null;
     loading?: boolean;
     size?: 'default' | 'builder';
+    onReconnect?: () => void | Promise<void>;
     class?: string;
   } = $props();
 
@@ -395,14 +397,24 @@
   {:else if result.status === 'error'}
     <div
       class={cn(
-        'grid place-items-center rounded-md bg-danger/10 p-5 text-center text-danger',
+        'grid place-items-center rounded-md p-5 text-center',
+        result.code === 'reconnect-required'
+          ? 'bg-card border border-border'
+          : 'bg-danger/10 text-danger',
         placeholderHeightClass
       )}
       role="alert"
     >
       <div>
-        <p class="font-medium">Chart could not load</p>
-        <p class="mt-1 text-sm">{result.message}</p>
+        <p class="font-medium text-foreground">
+          {result.code === 'reconnect-required' ? 'YNAB connection expired' : 'Chart could not load'}
+        </p>
+        <p class="mt-1 text-sm text-muted-foreground">{result.message}</p>
+        {#if result.code === 'reconnect-required' && onReconnect}
+          <button type="button" class="button primary mt-4" onclick={onReconnect}>
+            Reconnect to YNAB
+          </button>
+        {/if}
       </div>
     </div>
   {:else if type === 'number'}

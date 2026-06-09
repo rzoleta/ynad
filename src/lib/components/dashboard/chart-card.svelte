@@ -32,7 +32,8 @@
     onResize,
     onMove,
     onDragStart,
-    onDrop
+    onDrop,
+    onReconnect
   }: {
     chart: ChartConfig;
     result: ChartResult;
@@ -49,6 +50,7 @@
     onMove: (from: number, to: number) => void;
     onDragStart: (index: number) => void;
     onDrop: (index: number) => void;
+    onReconnect?: () => void | Promise<void>;
   } = $props();
 
   let isDesktop = $state(false);
@@ -222,5 +224,6 @@
     type={chart.type}
     currency={data?.budget.currencyFormat ?? null}
     loading={dataLoading}
+    {onReconnect}
   />
 </article>

@@ -6,9 +6,12 @@ export type ChartEmptyResult = {
   message: string;
 };
 
+import type { YnabErrorCode } from '$lib/ynab/errors';
+
 export type ChartErrorResult = {
   status: 'error';
   message: string;
+  code?: YnabErrorCode;
 };
 
 export type TimeSeriesPoint = {
