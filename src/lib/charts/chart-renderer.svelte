@@ -230,8 +230,28 @@
 
   function formatXTick(value: unknown) {
     const label = String(value);
+
+    if (chart.granularity === 'monthly') {
+      const point = points.find((p) => p.label === label);
+      if (point && 'from' in point && point.from) {
+        const date = new Date(point.from);
+        return date.toLocaleDateString(undefined, { month: 'short' });
+      }
+    }
+
     return label.length > 12 ? `${label.slice(0, 12)}...` : label;
   }
+
+  const xAxisProps = {
+    format: formatXTick,
+    tickMarks: false,
+    tickLabelProps: {
+      rotate: -45,
+      textAnchor: 'end',
+      verticalAnchor: 'middle',
+      dy: 10
+    } as const
+  };
 </script>
 
 <div class={cn('mt-5 min-h-48 overflow-hidden', className)}>
@@ -249,7 +269,7 @@
       <p id={summaryId} class="sr-only">{chartAriaLabel}</p>
       <div
         bind:this={chartContainerRef}
-        class="rounded-md bg-background px-2 py-4"
+        class="rounded-md bg-background py-8 px-6"
         role="img"
         aria-labelledby={summaryId}
       >
@@ -283,7 +303,7 @@
                       'stroke-linejoin': 'round'
                     }
                   },
-                  xAxis: { format: formatXTick },
+                  xAxis: xAxisProps,
                   yAxis: { format: formatAxisValue }
                 }}
               />
@@ -311,7 +331,7 @@
                       'stroke-linejoin': 'round'
                     }
                   },
-                  xAxis: { format: formatXTick },
+                  xAxis: xAxisProps,
                   yAxis: { format: formatAxisValue }
                 }}
               />
@@ -348,7 +368,7 @@
                   item: { format: formatTooltipValue },
                   root: { x: 'data', y: tooltipYPosition }
                 },
-                xAxis: { format: formatXTick },
+                xAxis: xAxisProps,
                 yAxis: { format: formatAxisValue }
               }}
             />
@@ -367,7 +387,7 @@
                   item: { format: formatTooltipValue },
                   root: { x: 'data', y: tooltipYPosition }
                 },
-                xAxis: { format: formatXTick },
+                xAxis: xAxisProps,
                 yAxis: { format: formatAxisValue }
               }}
             />
