@@ -3,9 +3,11 @@
   import type { ChartType } from '$lib/app/chart-config';
 
   let {
-    onAddChart
+    onAddChart,
+    disabled = false
   }: {
     onAddChart: (type: ChartType) => void;
+    disabled?: boolean;
   } = $props();
 
   const options = [
@@ -31,6 +33,7 @@
         <button
           type="button"
           class={option.type === 'number' ? 'button secondary' : 'button primary'}
+          {disabled}
           onclick={() => onAddChart(option.type)}
         >
           <Icon size={16} />

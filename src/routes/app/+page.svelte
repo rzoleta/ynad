@@ -291,7 +291,7 @@
     {/if}
 
     {#if charts.length === 0}
-      <EmptyDashboard onAddChart={openNew} />
+      <EmptyDashboard onAddChart={openNew} disabled={isSnapshotLoading} />
     {:else}
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3" role="list">
         {#each charts as chart, index (chart.id)}
