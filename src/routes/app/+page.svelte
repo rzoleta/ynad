@@ -1,6 +1,12 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
+  import { flip } from 'svelte/animate';
   import { onMount } from 'svelte';
+  import {
+    dragHandleZone,
+    SHADOW_ITEM_MARKER_PROPERTY_NAME,
+    type DndEvent
+  } from 'svelte-dnd-action';
   import {
     formatRateLimitPause,
     getRateLimitPauseUntil,
@@ -20,7 +26,6 @@
   } from '$lib/app/chart-config';
   import {
     cloneDashboardChart,
-    duplicateDashboardChart,
     readDashboard,
     reorderCharts,
     resizeDashboardChart,
@@ -49,8 +54,9 @@
   let rateLimitPauseUntil = $state<number | null>(null);
   let lastRateLimitError = $state<unknown>(null);
   let now = $state(Date.now());
-  let draggedIndex = $state<number | null>(null);
   let manualRefreshInProgress = $state(false);
+
+  const reorderFlipDurationMs = 180;
 
   const dashboardSubtitle = $derived(
     connectionStatus === 'connected'
@@ -93,6 +99,17 @@
     )
   );
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
+  const dragDisabled = $derived(!editMode || isSnapshotLoading || charts.length < 2);
+  const chartDragOptions = $derived({
+    items: charts,
+    type: 'dashboard-charts',
+    flipDurationMs: reorderFlipDurationMs,
+    dragDisabled,
+    dropFromOthersDisabled: true,
+    delayTouchStart: 120,
+    useCursorForDetection: true,
+    dropTargetClasses: dragDisabled ? [] : ['dashboard-grid-drop-target']
+  });
 
   onMount(() => {
     const connection = readYnabConnectionState();
@@ -171,10 +188,6 @@
     editingChart = null;
   }
 
-  function duplicateChart(chart: ChartConfig) {
-    persist([...charts, duplicateDashboardChart(chart)]);
-  }
-
   function deleteChart(chart: ChartConfig) {
     if (confirm(`Delete "${chart.title}"?`)) persist(charts.filter((item) => item.id !== chart.id));
   }
@@ -189,9 +202,22 @@
     persist(reorderCharts(charts, from, to));
   }
 
-  function onDrop(to: number) {
-    if (draggedIndex !== null && draggedIndex !== to) moveChart(draggedIndex, to);
-    draggedIndex = null;
+  function handleChartDragConsider(event: CustomEvent<DndEvent<ChartDndItem>>) {
+    charts = event.detail.items;
+  }
+
+  function handleChartDragFinalize(event: CustomEvent<DndEvent<ChartDndItem>>) {
+    persist(realChartItems(event.detail.items));
+  }
+
+  function realChartItems(items: ChartDndItem[]): ChartConfig[] {
+    return items.filter((chart) => !chart[SHADOW_ITEM_MARKER_PROPERTY_NAME]);
+  }
+
+  function chartGridSpan(chart: ChartConfig) {
+    if (chart.size === 'large') return 'md:col-span-3';
+    if (chart.size === 'medium') return 'md:col-span-2';
+    return '';
   }
 
   async function refresh() {
@@ -255,6 +281,10 @@
     }
     return getYnabErrorMessage(error);
   }
+
+  type ChartDndItem = ChartConfig & {
+    [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean;
+  };
 </script>
 
 <svelte:head>
@@ -293,26 +323,37 @@
     {#if charts.length === 0}
       <EmptyDashboard onAddChart={openNew} disabled={isSnapshotLoading} />
     {:else}
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3" role="list">
+      <div
+        class="dashboard-grid grid grid-cols-1 gap-4 md:grid-cols-3"
+        role="list"
+        aria-label="Dashboard charts"
+        use:dragHandleZone={chartDragOptions}
+        onconsider={handleChartDragConsider}
+        onfinalize={handleChartDragFinalize}
+      >
         {#each charts as chart, index (chart.id)}
-          <ChartCard
-            {chart}
-            result={resultFor(chart)}
-            data={snapshotQuery.data ?? null}
-            dataLoading={isSnapshotLoading}
-            disabled={isSnapshotLoading}
-            {editMode}
-            {index}
-            total={charts.length}
-            onEdit={openEdit}
-            onDuplicate={duplicateChart}
-            onDelete={deleteChart}
-            onResize={resizeChart}
-            onMove={moveChart}
-            onDragStart={(index) => (draggedIndex = index)}
-            {onDrop}
-            onReconnect={startYnabOAuth}
-          />
+          <div
+            class={chartGridSpan(chart)}
+            role="listitem"
+            aria-label={`${chart.title} chart`}
+            animate:flip={{ duration: reorderFlipDurationMs }}
+          >
+            <ChartCard
+              {chart}
+              result={resultFor(chart)}
+              data={snapshotQuery.data ?? null}
+              dataLoading={isSnapshotLoading}
+              disabled={isSnapshotLoading}
+              {editMode}
+              {index}
+              total={charts.length}
+              onEdit={openEdit}
+              onDelete={deleteChart}
+              onResize={resizeChart}
+              onMove={moveChart}
+              onReconnect={startYnabOAuth}
+            />
+          </div>
         {/each}
       </div>
     {/if}
@@ -328,3 +369,18 @@
     onCancel={closeEditor}
   />
 </main>
+
+<style>
+  :global(.dashboard-grid-drop-target) {
+    border-radius: 0.875rem;
+    outline: 1px dashed color-mix(in oklab, var(--color-primary) 42%, transparent);
+    outline-offset: 0.5rem;
+  }
+
+  :global(#dnd-action-dragged-el) {
+    cursor: grabbing !important;
+    opacity: 0.97;
+    filter: drop-shadow(0 20px 24px rgb(0 0 0 / 0.16));
+    transform: rotate(0.35deg);
+  }
+</style>

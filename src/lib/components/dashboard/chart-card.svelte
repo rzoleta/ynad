@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { ArrowDown, ArrowUp, Copy, GripVertical, Pencil, Trash2 } from '@lucide/svelte';
+  import { dragHandle } from 'svelte-dnd-action';
+  import { ArrowDown, ArrowUp, GripVertical, Pencil, Trash2 } from '@lucide/svelte';
   import { getChartMetadata, type ChartConfig, type ChartSize } from '$lib/app/chart-config';
   import ChartRenderer from '$lib/charts/chart-renderer.svelte';
   import type { ChartResult } from '$lib/charts/types';
@@ -18,12 +18,9 @@
     index,
     total,
     onEdit,
-    onDuplicate,
     onDelete,
     onResize,
     onMove,
-    onDragStart,
-    onDrop,
     onReconnect
   }: {
     chart: ChartConfig;
@@ -35,20 +32,12 @@
     index: number;
     total: number;
     onEdit: (chart: ChartConfig) => void;
-    onDuplicate: (chart: ChartConfig) => void;
     onDelete: (chart: ChartConfig) => void;
     onResize: (chart: ChartConfig, size: ChartSize) => void;
     onMove: (from: number, to: number) => void;
-    onDragStart: (index: number) => void;
-    onDrop: (index: number) => void;
     onReconnect?: () => void | Promise<void>;
   } = $props();
 
-  let isDesktop = $state(false);
-
-  const cardSpan = $derived(
-    chart.size === 'large' ? 'md:col-span-3' : chart.size === 'medium' ? 'md:col-span-2' : ''
-  );
   const canMoveUp = $derived(index > 0);
   const canMoveDown = $derived(index < total - 1);
 
@@ -57,58 +46,25 @@
     { value: 'medium', label: 'Medium', short: 'M' },
     { value: 'large', label: 'Large', short: 'L' }
   ] satisfies Array<{ value: ChartSize; label: string; short: string }>;
-
-  onMount(() => {
-    const media = window.matchMedia('(min-width: 768px)');
-    const update = () => {
-      isDesktop = media.matches;
-    };
-
-    update();
-    media.addEventListener('change', update);
-
-    return () => media.removeEventListener('change', update);
-  });
-
-  function handleDragStart() {
-    if (disabled || !editMode || !isDesktop) return;
-    onDragStart(index);
-  }
-
-  function handleDragOver(event: DragEvent) {
-    if (disabled || !editMode || !isDesktop) return;
-    event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-  }
-
-  function handleDrop(event: DragEvent) {
-    if (disabled || !editMode || !isDesktop) return;
-    event.preventDefault();
-    onDrop(index);
-  }
 </script>
 
 <article
-  role="listitem"
   class={cn(
-    'rounded-lg border border-border bg-card p-4 transition',
-    editMode && 'ring-1 ring-primary/15',
-    cardSpan
+    'h-full rounded-lg border border-border bg-card p-4 transition-[border-color,box-shadow,transform,background-color]',
+    'hover:border-foreground/20 hover:shadow-sm',
+    editMode && 'border-primary/25 bg-card shadow-sm ring-1 ring-primary/15'
   )}
-  draggable={!disabled && editMode && isDesktop}
-  ondragstart={handleDragStart}
-  ondragover={handleDragOver}
-  ondrop={handleDrop}
 >
   <div class="flex items-start justify-between gap-3">
     <div class="flex h-10 min-w-0 items-start gap-2">
       {#if editMode}
         <button
           type="button"
-          class="mt-0.5 hidden size-8 shrink-0 cursor-grab place-items-center rounded-md text-muted-foreground hover:bg-muted md:grid"
+          use:dragHandle
+          class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md border border-transparent text-muted-foreground transition hover:border-border hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           title="Drag to reorder"
           aria-label="Drag to reorder"
-          {disabled}
+          disabled={disabled || total < 2}
         >
           <GripVertical size={16} />
         </button>
@@ -145,16 +101,6 @@
 
     <div class="flex shrink-0 flex-wrap items-center gap-1">
       {#if editMode}
-        <!-- <Button
-          size="icon"
-          variant="secondary"
-          title="Duplicate"
-          aria-label="Duplicate"
-          {disabled}
-          onclick={() => onDuplicate(chart)}
-        >
-          <Copy size={16} />
-        </Button> -->
         <Button
           size="icon"
           variant="danger-outline"

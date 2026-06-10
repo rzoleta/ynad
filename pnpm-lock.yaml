@@ -41,6 +41,9 @@ importers:
       shadcn-svelte:
         specifier: ^1.3.0
         version: 1.3.0(svelte@5.56.1(@typescript-eslint/types@8.60.1))
+      svelte-dnd-action:
+        specifier: ^0.9.69
+        version: 0.9.69(svelte@5.56.1(@typescript-eslint/types@8.60.1))
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
@@ -1635,6 +1638,11 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: '>=5.0.0'
 
+  svelte-dnd-action@0.9.69:
+    resolution: {integrity: sha512-NAmSOH7htJoYraTQvr+q5whlIuVoq88vEuHr4NcFgscDRUxfWPPxgie2OoxepBCQCikrXZV4pqV86aun60wVyw==}
+    peerDependencies:
+      svelte: '>=3.23.0 || ^5.0.0-next.0'
+
   svelte-eslint-parser@1.7.1:
     resolution: {integrity: sha512-mmwwKL9L/MB0QyBKdfyWxGjDuQfEyzxWy5S9Kkd0O/V5XD57MQ33KQtXrO6vKLuP6PIt8CRozvOX1mxpcRTqUg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0, pnpm: 10.34.1}
@@ -3173,6 +3181,10 @@ snapshots:
       typescript: 6.0.3
     transitivePeerDependencies:
       - picomatch
+
+  svelte-dnd-action@0.9.69(svelte@5.56.1(@typescript-eslint/types@8.60.1)):
+    dependencies:
+      svelte: 5.56.1(@typescript-eslint/types@8.60.1)
 
   svelte-eslint-parser@1.7.1(svelte@5.56.1(@typescript-eslint/types@8.60.1)):
     dependencies:
