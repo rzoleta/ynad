@@ -52,7 +52,7 @@
   class={cn(
     'h-full rounded-lg border border-border bg-card p-4 transition-[border-color,box-shadow,transform,background-color]',
     'hover:border-foreground/20 hover:shadow-sm',
-    editMode && 'border-primary/25 bg-card shadow-sm ring-1 ring-primary/15'
+    editMode && 'shadow-sm'
   )}
 >
   <div class="flex items-start justify-between gap-3">
