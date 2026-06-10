@@ -43,7 +43,7 @@
     '[&_.lc-grid-line]:stroke-border',
     '[&_.lc-line]:stroke-[2.5px]',
     '[&_.lc-spline-path]:stroke-[2.5px]',
-    '[&_.lc-highlight-point]:stroke-background',
+    '[&_.lc-highlight-point]:stroke-card',
     '[&_.lc-labels-text:not([fill])]:fill-foreground',
     '[&_text]:stroke-transparent',
     '[&_.lc-bar]:stroke-none',

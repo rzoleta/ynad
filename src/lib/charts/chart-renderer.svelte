@@ -257,7 +257,7 @@
 
 <div class={cn('mt-5 min-h-48 overflow-hidden', className)}>
   {#if result.status === 'number'}
-    <div class={cn('flex items-center rounded-md bg-background p-5', placeholderHeightClass)}>
+    <div class={cn('flex items-center rounded-md bg-card p-5', placeholderHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground capitalize">{result.label}</p>
         <p class="mt-2 text-4xl font-semibold break-words">
@@ -270,7 +270,7 @@
       <p id={summaryId} class="sr-only">{chartAriaLabel}</p>
       <div
         bind:this={chartContainerRef}
-        class="rounded-md bg-background py-8 px-6"
+        class="rounded-md bg-card py-8 px-6"
         role="img"
         aria-labelledby={summaryId}
       >
@@ -404,7 +404,7 @@
   {:else if loading}
     <div
       class={cn(
-        'grid place-items-center rounded-md bg-background p-5 text-center text-muted-foreground',
+        'grid place-items-center rounded-md bg-card p-5 text-center text-muted-foreground',
         placeholderHeightClass
       )}
       aria-live="polite"
@@ -439,7 +439,7 @@
       </div>
     </div>
   {:else if type === 'number'}
-    <div class={cn('flex items-center rounded-md bg-background p-5', placeholderHeightClass)}>
+    <div class={cn('flex items-center rounded-md bg-card p-5', placeholderHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground">{result.message}</p>
         <p class="mt-2 text-4xl font-semibold">--</p>
@@ -448,7 +448,7 @@
   {:else}
     <div
       class={cn(
-        'grid place-items-center rounded-md bg-background p-5 text-center text-muted-foreground',
+        'grid place-items-center rounded-md bg-card p-5 text-center text-muted-foreground',
         placeholderHeightClass
       )}
     >
