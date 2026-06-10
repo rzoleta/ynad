@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { Moon, Sun, Unplug } from '@lucide/svelte';
+  import { Unplug } from '@lucide/svelte';
   import { createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { setMode, userPrefersMode } from 'mode-watcher';
   import { onMount } from 'svelte';
@@ -38,6 +38,15 @@
     { value: '7', label: 'Sunday' }
   ];
   const weekStartValue = $derived(String(weekStart));
+  const themeOptions = [
+    { value: 'system', label: 'System' },
+    { value: 'light', label: 'Light' },
+    { value: 'dark', label: 'Dark' }
+  ];
+  const themeValue = $derived(userPrefersMode.current ?? 'system');
+  const themeLabel = $derived(
+    themeOptions.find((option) => option.value === themeValue)?.label ?? 'System'
+  );
   const weekStartLabel = $derived(
     weekStartOptions.find((option) => option.value === weekStartValue)?.label ?? 'Sunday'
   );
@@ -92,19 +101,21 @@
   <section class="mx-auto max-w-4xl space-y-5 px-5 py-6">
     <div class="rounded-lg border border-border bg-card p-5">
       <h1 class="text-lg font-semibold">Appearance</h1>
-      <p class="mt-1 text-sm text-muted-foreground">Theme preference is stored by mode-watcher.</p>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <Button variant="secondary" onclick={() => setMode('system')}>System</Button>
-        <Button variant="secondary" onclick={() => setMode('light')}
-          ><Sun size={16} /> Light</Button
+      <label class="field mt-4 max-w-sm">
+        <span>Theme</span>
+        <Select.Root
+          type="single"
+          value={themeValue}
+          onValueChange={(value) => setMode(value as 'system' | 'light' | 'dark')}
         >
-        <Button variant="secondary" onclick={() => setMode('dark')}
-          ><Moon size={16} /> Dark</Button
-        >
-      </div>
-      <p class="mt-3 text-xs text-muted-foreground">
-        Current preference: {userPrefersMode.current}
-      </p>
+          <Select.Trigger class="w-full">{themeLabel}</Select.Trigger>
+          <Select.Content>
+            {#each themeOptions as option (option.value)}
+              <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      </label>
     </div>
 
     <div class="rounded-lg border border-border bg-card p-5">
