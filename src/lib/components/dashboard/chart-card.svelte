@@ -134,68 +134,27 @@
       </div>
     </div>
 
-    <Button
-      size="icon"
-      variant="secondary"
-      class="shrink-0"
-      title="Edit chart"
-      aria-label="Edit chart"
-      {disabled}
-      onclick={() => onEdit(chart)}
-    >
-      <Pencil size={16} />
-    </Button>
-  </div>
-
-  {#if editMode}
-    <div
-      class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3"
-      aria-label="Chart edit controls"
-    >
-      <div class="flex items-center gap-1 md:hidden">
-        <Button
-          size="icon"
-          variant="secondary"
-          title="Move up"
-          aria-label="Move up"
-          disabled={disabled || !canMoveUp}
-          onclick={() => onMove(index, index - 1)}
-        >
-          <ArrowUp size={16} />
-        </Button>
-        <Button
-          size="icon"
-          variant="secondary"
-          title="Move down"
-          aria-label="Move down"
-          disabled={disabled || !canMoveDown}
-          onclick={() => onMove(index, index + 1)}
-        >
-          <ArrowDown size={16} />
-        </Button>
-      </div>
-
-      <div class="flex items-center gap-1 rounded-md border border-border bg-background p-1">
-        {#each sizeOptions as option (option.value)}
-          {@const Icon = option.icon}
-          <button
-            type="button"
-            class={cn(
-              'grid size-8 place-items-center rounded-sm text-muted-foreground transition hover:bg-muted',
-              chart.size === option.value && 'bg-primary text-primary-foreground hover:bg-primary'
-            )}
-            title={`${option.label} card`}
-            aria-label={`${option.label} card`}
-            aria-pressed={chart.size === option.value}
-            {disabled}
-            onclick={() => onResize(chart, option.value)}
-          >
-            <Icon size={15} />
-          </button>
-        {/each}
-      </div>
-
-      <div class="flex items-center gap-1">
+    <div class="flex shrink-0 flex-wrap items-center gap-1">
+      {#if editMode}
+        <div class="flex items-center gap-1 rounded-md border border-border bg-background p-1">
+          {#each sizeOptions as option (option.value)}
+            {@const Icon = option.icon}
+            <button
+              type="button"
+              class={cn(
+                'grid size-8 place-items-center rounded-sm text-muted-foreground transition hover:bg-muted',
+                chart.size === option.value && 'bg-primary text-primary-foreground hover:bg-primary'
+              )}
+              title={`${option.label} card`}
+              aria-label={`${option.label} card`}
+              aria-pressed={chart.size === option.value}
+              {disabled}
+              onclick={() => onResize(chart, option.value)}
+            >
+              <Icon size={15} />
+            </button>
+          {/each}
+        </div>
         <Button
           size="icon"
           variant="secondary"
@@ -215,6 +174,47 @@
           onclick={() => onDelete(chart)}
         >
           <Trash2 size={16} />
+        </Button>
+      {/if}
+      <Button
+        size="icon"
+        variant="secondary"
+        class="shrink-0"
+        title="Edit chart"
+        aria-label="Edit chart"
+        {disabled}
+        onclick={() => onEdit(chart)}
+      >
+        <Pencil size={16} />
+      </Button>
+    </div>
+  </div>
+
+  {#if editMode}
+    <div
+      class="mt-4 flex items-center gap-2 border-t border-border pt-3 md:hidden"
+      aria-label="Chart edit controls"
+    >
+      <div class="flex items-center gap-1">
+        <Button
+          size="icon"
+          variant="secondary"
+          title="Move up"
+          aria-label="Move up"
+          disabled={disabled || !canMoveUp}
+          onclick={() => onMove(index, index - 1)}
+        >
+          <ArrowUp size={16} />
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          title="Move down"
+          aria-label="Move down"
+          disabled={disabled || !canMoveDown}
+          onclick={() => onMove(index, index + 1)}
+        >
+          <ArrowDown size={16} />
         </Button>
       </div>
     </div>
