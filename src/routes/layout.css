@@ -7,14 +7,14 @@
 :root {
   font-family: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
   color-scheme: light;
-  --background: #f4f8fb;
-  --foreground: #102033;
+  --background: #fafaf9;
+  --foreground: #0c0a09;
   --card: #ffffff;
-  --card-foreground: #102033;
-  --muted: #e8f0f6;
-  --muted-foreground: #5f7185;
-  --border: #d8e5ef;
-  --primary: #1f8ccf;
+  --card-foreground: #0c0a09;
+  --muted: #e7e5e4;
+  --muted-foreground: #0c0a09;
+  --border: #e7e5e4;
+  --primary: #1d4ed8;
   --primary-foreground: #ffffff;
   --accent: #0b6f8f;
   --accent-foreground: #ffffff;
@@ -44,15 +44,15 @@
 
 .dark {
   color-scheme: dark;
-  --background: #071924;
-  --foreground: #eaf5fb;
-  --card: #0c2432;
-  --card-foreground: #eaf5fb;
-  --muted: #123244;
-  --muted-foreground: #9eb5c5;
-  --border: #1b4157;
-  --primary: #45b2e6;
-  --primary-foreground: #04131d;
+  --background: #000000;
+  --foreground: #fafaf9;
+  --card: #0c0a09;
+  --card-foreground: #fafaf9;
+  --muted: #1c1917;
+  --muted-foreground: #fafaf9;
+  --border: #292524;
+  --primary: #1e3a8a;
+  --primary-foreground: #ffffff;
   --accent: #58c8a0;
   --accent-foreground: #04131d;
   --danger: #ff746b;
