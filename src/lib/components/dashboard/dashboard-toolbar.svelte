@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { Check, Pencil, Plus, RefreshCcw, Settings } from '@lucide/svelte';
+  import { Plus, RefreshCcw, Settings } from '@lucide/svelte';
   import type { ChartType } from '$lib/app/chart-config';
   import { formatDateTime } from '$lib/utils';
   import { Button } from '$lib/components/ui/button/index.js';
@@ -10,20 +10,16 @@
     lastUpdated,
     canRefresh,
     isRefreshing,
-    editMode,
     disabled = false,
     onRefresh,
-    onToggleEdit,
     onAddChart
   }: {
     subtitle: string;
     lastUpdated: Date | null;
     canRefresh: boolean;
     isRefreshing: boolean;
-    editMode: boolean;
     disabled?: boolean;
     onRefresh: () => void | Promise<void>;
-    onToggleEdit: () => void;
     onAddChart: (type: ChartType) => void;
   } = $props();
 </script>
@@ -50,7 +46,6 @@
           variant="primary"
           {disabled}
           onclick={() => {
-            editMode = false;
             onAddChart('spending');
           }}
         >
@@ -76,14 +71,4 @@
     </Button>
     <span class="text-sm text-muted-foreground">Refreshed {formatDateTime(lastUpdated)}</span>
   </div>
-
-  <Button variant="secondary" aria-pressed={editMode} {disabled} onclick={onToggleEdit}>
-    {#if editMode}
-      <Check size={17} />
-      Done
-    {:else}
-      <Pencil size={17} />
-      Edit dashboard
-    {/if}
-  </Button>
 </div>

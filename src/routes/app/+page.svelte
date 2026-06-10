@@ -21,16 +21,9 @@
     isChartPreviewable,
     normalizeChartForType,
     type ChartConfig,
-    type ChartSize,
     type ChartType
   } from '$lib/app/chart-config';
-  import {
-    cloneDashboardChart,
-    readDashboard,
-    reorderCharts,
-    resizeDashboardChart,
-    writeDashboard
-  } from '$lib/app/dashboard-storage';
+  import { cloneDashboardChart, readDashboard, writeDashboard } from '$lib/app/dashboard-storage';
   import { getEffectiveWeekStart } from '$lib/app/settings';
   import { computeChart, type ChartResult } from '$lib/charts/compute';
   import ChartBuilderSheet from '$lib/components/chart-builder/chart-builder-sheet.svelte';
@@ -48,7 +41,6 @@
   let budgetId = $state<string | null>(null);
   let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
   let charts = $state<ChartConfig[]>([]);
-  let editMode = $state(false);
   let editorOpen = $state(false);
   let editingChart = $state<ChartConfig | null>(null);
   let rateLimitPauseUntil = $state<number | null>(null);
@@ -99,7 +91,7 @@
     )
   );
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
-  const dragDisabled = $derived(!editMode || isSnapshotLoading || charts.length < 2);
+  const dragDisabled = $derived(isSnapshotLoading || charts.length < 2);
   const isEditingExistingChart = $derived(
     Boolean(editingChart && charts.some((chart) => chart.id === editingChart?.id))
   );
@@ -191,24 +183,10 @@
     editingChart = null;
   }
 
-  function deleteChart(chart: ChartConfig) {
-    if (confirm(`Delete "${chart.title}"?`)) persist(charts.filter((item) => item.id !== chart.id));
-  }
-
   function deleteEditingChart(chart: ChartConfig) {
     if (!confirm(`Delete "${chart.title}"?`)) return;
     persist(charts.filter((item) => item.id !== chart.id));
     closeEditor();
-  }
-
-  function resizeChart(chart: ChartConfig, size: ChartSize) {
-    if (chart.size === size) return;
-    persist(resizeDashboardChart(charts, chart.id, size));
-  }
-
-  function moveChart(from: number, to: number) {
-    if (to < 0 || to >= charts.length) return;
-    persist(reorderCharts(charts, from, to));
   }
 
   function handleChartDragConsider(event: CustomEvent<DndEvent<ChartDndItem>>) {
@@ -306,10 +284,8 @@
     {lastUpdated}
     {canRefresh}
     {isRefreshing}
-    {editMode}
     disabled={isSnapshotLoading}
     onRefresh={refresh}
-    onToggleEdit={() => (editMode = !editMode)}
     onAddChart={openNew}
   />
 
@@ -353,13 +329,8 @@
               data={snapshotQuery.data ?? null}
               dataLoading={isSnapshotLoading}
               disabled={isSnapshotLoading}
-              {editMode}
-              {index}
               total={charts.length}
               onEdit={openEdit}
-              onDelete={deleteChart}
-              onResize={resizeChart}
-              onMove={moveChart}
               onReconnect={startYnabOAuth}
             />
           </div>
