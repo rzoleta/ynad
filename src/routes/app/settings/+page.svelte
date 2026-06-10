@@ -21,6 +21,7 @@
     type WeekStart
   } from '$lib/app/settings';
   import { startYnabOAuth } from '$lib/ynab/auth';
+  import { Button } from '$lib/components/ui/button/index.js';
 
   let token = $state<string | null>(null);
   let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
@@ -84,7 +85,7 @@
         <a href={resolve('/app')} class="text-xl font-semibold">YNAD</a>
         <p class="text-sm text-muted-foreground">Settings</p>
       </div>
-      <a class="button secondary" href={resolve('/app')}>Dashboard</a>
+      <Button variant="secondary" href={resolve('/app')}>Dashboard</Button>
     </div>
   </header>
 
@@ -93,12 +94,12 @@
       <h1 class="text-lg font-semibold">Appearance</h1>
       <p class="mt-1 text-sm text-muted-foreground">Theme preference is stored by mode-watcher.</p>
       <div class="mt-4 flex flex-wrap gap-2">
-        <button class="button secondary" onclick={() => setMode('system')}>System</button>
-        <button class="button secondary" onclick={() => setMode('light')}
-          ><Sun size={16} /> Light</button
+        <Button variant="secondary" onclick={() => setMode('system')}>System</Button>
+        <Button variant="secondary" onclick={() => setMode('light')}
+          ><Sun size={16} /> Light</Button
         >
-        <button class="button secondary" onclick={() => setMode('dark')}
-          ><Moon size={16} /> Dark</button
+        <Button variant="secondary" onclick={() => setMode('dark')}
+          ><Moon size={16} /> Dark</Button
         >
       </div>
       <p class="mt-3 text-xs text-muted-foreground">
@@ -147,12 +148,12 @@
       </p>
       <div class="mt-4 flex flex-wrap gap-2">
         {#if connectionStatus === 'expired'}
-          <button class="button primary" onclick={startYnabOAuth}>Reconnect YNAB</button>
+          <Button variant="primary" onclick={startYnabOAuth}>Reconnect YNAB</Button>
         {/if}
-        <button class="button danger" onclick={disconnect}>
+        <Button variant="danger" onclick={disconnect}>
           <Unplug size={16} />
           Disconnect YNAB
-        </button>
+        </Button>
       </div>
     </div>
   </section>

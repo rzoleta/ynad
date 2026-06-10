@@ -143,30 +143,6 @@ select:focus-visible {
 }
 
 @layer components {
-  .button {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-50;
-  }
-
-  .button.primary {
-    @apply bg-primary text-primary-foreground shadow-sm hover:opacity-90;
-  }
-
-  .button.secondary {
-    @apply border border-border bg-card text-foreground hover:bg-muted;
-  }
-
-  .button.danger {
-    @apply bg-danger text-white hover:opacity-90;
-  }
-
-  .icon-button {
-    @apply inline-grid size-10 place-items-center rounded-md border border-border bg-card text-foreground transition hover:bg-muted disabled:pointer-events-none disabled:opacity-50;
-  }
-
-  .icon-button.danger {
-    @apply border-danger/30 text-danger hover:bg-danger/10;
-  }
-
   .field {
     @apply grid gap-2 text-sm font-medium;
   }

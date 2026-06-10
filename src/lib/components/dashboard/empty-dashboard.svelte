@@ -1,6 +1,7 @@
 <script lang="ts">
   import { BarChart3, CircleDollarSign, Landmark, Sigma } from '@lucide/svelte';
   import type { ChartType } from '$lib/app/chart-config';
+  import { Button } from '$lib/components/ui/button/index.js';
 
   let {
     onAddChart,
@@ -30,15 +31,14 @@
     <div class="mt-6 flex flex-wrap justify-center gap-2">
       {#each options as option (option.type)}
         {@const Icon = option.icon}
-        <button
-          type="button"
-          class={option.type === 'number' ? 'button secondary' : 'button primary'}
+        <Button
+          variant={option.type === 'number' ? 'secondary' : 'primary'}
           {disabled}
           onclick={() => onAddChart(option.type)}
         >
           <Icon size={16} />
           {option.label}
-        </button>
+        </Button>
       {/each}
     </div>
   </div>

@@ -20,6 +20,7 @@
   import PayeeFilterControl from './payee-filter-control.svelte';
   import TitleField from './title-field.svelte';
   import VisualizationControl from './visualization-control.svelte';
+  import { Button } from '$lib/components/ui/button/index.js';
 
   let {
     open,
@@ -149,9 +150,9 @@
           {chart.title}
         </p>
       </div>
-      <button class="icon-button" title="Close" aria-label="Close chart builder" onclick={cancel}>
+      <Button size="icon" variant="secondary" title="Close" aria-label="Close chart builder" onclick={cancel}>
         <X size={17} />
-      </button>
+      </Button>
     </div>
 
     <div
@@ -204,8 +205,8 @@
     <div
       class="sticky bottom-0 flex justify-end gap-2 border-t border-border bg-card/95 p-4 backdrop-blur"
     >
-      <button class="button secondary" onclick={cancel}>Cancel</button>
-      <button class="button primary" disabled={!canSave} onclick={save}>Save</button>
+      <Button variant="secondary" onclick={cancel}>Cancel</Button>
+      <Button variant="primary" disabled={!canSave} onclick={save}>Save</Button>
     </div>
   </div>
 {/if}

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Link, RefreshCw } from '@lucide/svelte';
 
+  import { Button } from '$lib/components/ui/button/index.js';
+
   let {
     status,
     onConnect
@@ -33,5 +35,5 @@
       <p class="mt-1 text-sm text-muted-foreground">{message}</p>
     </div>
   </div>
-  <button type="button" class="button primary" onclick={onConnect}>{title}</button>
+  <Button variant="primary" onclick={onConnect}>{title}</Button>
 </div>

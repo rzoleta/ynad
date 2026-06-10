@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { AlertTriangle, RefreshCcw } from '@lucide/svelte';
   import type { YnabErrorCode } from '$lib/ynab/errors';
+  import { Button } from '$lib/components/ui/button/index.js';
 
   let {
     code,
@@ -35,20 +36,19 @@
 
   <div class="flex flex-wrap gap-2">
     {#if code === 'reconnect-required'}
-      <button type="button" class="button primary" onclick={onReconnect}>Reconnect YNAB</button>
+      <Button variant="primary" onclick={onReconnect}>Reconnect YNAB</Button>
     {:else if code === 'budget-unavailable'}
-      <a class="button secondary" href={resolve('/app/settings')}>Settings</a>
+      <Button variant="secondary" href={resolve('/app/settings')}>Settings</Button>
     {:else}
-      <button
-        type="button"
-        class="button secondary"
+      <Button
+        variant="secondary"
         title="Refresh YNAB data"
         disabled={!canRefresh}
         onclick={onRefresh}
       >
         <RefreshCcw size={16} />
         Refresh
-      </button>
+      </Button>
     {/if}
   </div>
 </div>

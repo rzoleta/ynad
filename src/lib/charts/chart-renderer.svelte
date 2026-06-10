@@ -9,6 +9,7 @@
   import { formatMilliunits, normalizeCurrencyFormat } from '$lib/domain/currency';
   import type { CurrencyFormat } from '$lib/domain/types';
   import { cn } from '$lib/utils';
+  import { Button } from '$lib/components/ui/button/index.js';
 
   let {
     result,
@@ -431,9 +432,9 @@
         </p>
         <p class="mt-1 text-sm text-muted-foreground">{result.message}</p>
         {#if result.code === 'reconnect-required' && onReconnect}
-          <button type="button" class="button primary mt-4" onclick={onReconnect}>
+          <Button variant="primary" class="mt-4" onclick={onReconnect}>
             Reconnect to YNAB
-          </button>
+          </Button>
         {/if}
       </div>
     </div>

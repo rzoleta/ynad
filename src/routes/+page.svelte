@@ -4,6 +4,7 @@
   import { resolve } from '$app/paths';
   import { BarChart3, LockKeyhole, PanelsTopLeft, ShieldCheck } from '@lucide/svelte';
   import { startYnabOAuth, readToken } from '$lib/ynab/auth';
+  import { Button } from '$lib/components/ui/button/index.js';
 
   let error = $state('');
 
@@ -50,19 +51,21 @@
         layout only in this browser.
       </p>
       <div class="mt-8 flex flex-wrap gap-3">
-        <button
-          class="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 font-medium text-primary-foreground shadow-sm transition hover:opacity-90"
+        <Button
+          variant="primary"
+          class="px-5 py-3"
           onclick={connect}
         >
           <LockKeyhole size={18} />
           Connect YNAB
-        </button>
-        <a
-          class="inline-flex items-center gap-2 rounded-md border border-border bg-card px-5 py-3 font-medium text-foreground transition hover:bg-muted"
+        </Button>
+        <Button
+          variant="secondary"
+          class="px-5 py-3"
           href={resolve('/privacy')}
         >
           Privacy
-        </a>
+        </Button>
       </div>
       {#if error}
         <p

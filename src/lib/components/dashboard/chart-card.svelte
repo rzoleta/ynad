@@ -16,6 +16,7 @@
   import type { ChartResult } from '$lib/charts/types';
   import type { NormalizedBudgetData } from '$lib/domain/types';
   import { cn } from '$lib/utils';
+  import { Button } from '$lib/components/ui/button/index.js';
 
   let {
     chart,
@@ -133,16 +134,17 @@
       </div>
     </div>
 
-    <button
-      type="button"
-      class="icon-button shrink-0"
+    <Button
+      size="icon"
+      variant="secondary"
+      class="shrink-0"
       title="Edit chart"
       aria-label="Edit chart"
       {disabled}
       onclick={() => onEdit(chart)}
     >
       <Pencil size={16} />
-    </button>
+    </Button>
   </div>
 
   {#if editMode}
@@ -151,26 +153,26 @@
       aria-label="Chart edit controls"
     >
       <div class="flex items-center gap-1 md:hidden">
-        <button
-          type="button"
-          class="icon-button"
+        <Button
+          size="icon"
+          variant="secondary"
           title="Move up"
           aria-label="Move up"
           disabled={disabled || !canMoveUp}
           onclick={() => onMove(index, index - 1)}
         >
           <ArrowUp size={16} />
-        </button>
-        <button
-          type="button"
-          class="icon-button"
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
           title="Move down"
           aria-label="Move down"
           disabled={disabled || !canMoveDown}
           onclick={() => onMove(index, index + 1)}
         >
           <ArrowDown size={16} />
-        </button>
+        </Button>
       </div>
 
       <div class="flex items-center gap-1 rounded-md border border-border bg-background p-1">
@@ -194,26 +196,26 @@
       </div>
 
       <div class="flex items-center gap-1">
-        <button
-          type="button"
-          class="icon-button"
+        <Button
+          size="icon"
+          variant="secondary"
           title="Duplicate"
           aria-label="Duplicate"
           {disabled}
           onclick={() => onDuplicate(chart)}
         >
           <Copy size={16} />
-        </button>
-        <button
-          type="button"
-          class="icon-button danger"
+        </Button>
+        <Button
+          size="icon"
+          variant="danger-outline"
           title="Delete"
           aria-label="Delete"
           {disabled}
           onclick={() => onDelete(chart)}
         >
           <Trash2 size={16} />
-        </button>
+        </Button>
       </div>
     </div>
   {/if}
