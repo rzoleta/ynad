@@ -5,9 +5,6 @@
     ArrowUp,
     Copy,
     GripVertical,
-    Maximize2,
-    Minimize2,
-    PanelRightOpen,
     Pencil,
     Trash2
   } from '@lucide/svelte';
@@ -63,10 +60,10 @@
   const canMoveDown = $derived(index < total - 1);
 
   const sizeOptions = [
-    { value: 'small', label: 'Small', icon: Minimize2 },
-    { value: 'medium', label: 'Medium', icon: PanelRightOpen },
-    { value: 'large', label: 'Large', icon: Maximize2 }
-  ] satisfies Array<{ value: ChartSize; label: string; icon: typeof Minimize2 }>;
+    { value: 'small', label: 'Small', short: 'S' },
+    { value: 'medium', label: 'Medium', short: 'M' },
+    { value: 'large', label: 'Large', short: 'L' }
+  ] satisfies Array<{ value: ChartSize; label: string; short: string }>;
 
   onMount(() => {
     const media = window.matchMedia('(min-width: 768px)');
@@ -136,13 +133,12 @@
 
     <div class="flex shrink-0 flex-wrap items-center gap-1">
       {#if editMode}
-        <div class="flex items-center gap-1 rounded-md border border-border bg-background p-1">
+        <div class="grid grid-cols-3 w-[6rem] overflow-hidden rounded-md border border-border bg-background">
           {#each sizeOptions as option (option.value)}
-            {@const Icon = option.icon}
             <button
               type="button"
               class={cn(
-                'grid size-8 place-items-center rounded-sm text-muted-foreground transition hover:bg-muted',
+                'flex items-center justify-center h-8 text-xs border-r border-border transition last:border-r-0 hover:bg-muted',
                 chart.size === option.value && 'bg-primary text-primary-foreground hover:bg-primary'
               )}
               title={`${option.label} card`}
@@ -151,7 +147,7 @@
               {disabled}
               onclick={() => onResize(chart, option.value)}
             >
-              <Icon size={15} />
+              {option.short}
             </button>
           {/each}
         </div>
