@@ -100,6 +100,9 @@
   );
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
   const dragDisabled = $derived(!editMode || isSnapshotLoading || charts.length < 2);
+  const isEditingExistingChart = $derived(
+    Boolean(editingChart && charts.some((chart) => chart.id === editingChart?.id))
+  );
   const chartDragOptions = $derived({
     items: charts,
     type: 'dashboard-charts',
@@ -190,6 +193,12 @@
 
   function deleteChart(chart: ChartConfig) {
     if (confirm(`Delete "${chart.title}"?`)) persist(charts.filter((item) => item.id !== chart.id));
+  }
+
+  function deleteEditingChart(chart: ChartConfig) {
+    if (!confirm(`Delete "${chart.title}"?`)) return;
+    persist(charts.filter((item) => item.id !== chart.id));
+    closeEditor();
   }
 
   function resizeChart(chart: ChartConfig, size: ChartSize) {
@@ -367,6 +376,7 @@
     onChange={updateEditingChart}
     onSave={saveChart}
     onCancel={closeEditor}
+    onDelete={isEditingExistingChart ? deleteEditingChart : undefined}
   />
 </main>
 

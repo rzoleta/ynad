@@ -29,7 +29,8 @@
     weekStart,
     onChange,
     onSave,
-    onCancel
+    onCancel,
+    onDelete
   }: {
     open: boolean;
     chart: ChartConfig | null;
@@ -38,6 +39,7 @@
     onChange: (chart: ChartConfig) => void;
     onSave: (chart: ChartConfig) => void;
     onCancel: () => void;
+    onDelete?: (chart: ChartConfig) => void;
   } = $props();
 
   let dialogElement = $state<HTMLElement | null>(null);
@@ -60,6 +62,11 @@
 
   function cancel() {
     onCancel();
+  }
+
+  function deleteChart() {
+    if (!chart) return;
+    onDelete?.(chart);
   }
 
   function getFocusableElements() {
@@ -203,8 +210,11 @@
     </div>
 
     <div
-      class="sticky bottom-0 flex justify-end gap-2 border-t border-border bg-card/95 p-4 backdrop-blur"
+      class="sticky bottom-0 flex items-center justify-end gap-2 border-t border-border bg-card/95 p-4 backdrop-blur"
     >
+      {#if onDelete}
+        <Button class="mr-auto" variant="destructive" onclick={deleteChart}>Delete</Button>
+      {/if}
       <Button variant="secondary" onclick={cancel}>Cancel</Button>
       <Button variant="primary" disabled={!canSave} onclick={save}>Save</Button>
     </div>
