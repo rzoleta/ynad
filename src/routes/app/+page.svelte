@@ -274,7 +274,7 @@
     onAddChart={openNew}
   />
 
-  <section class="mx-auto max-w-7xl px-5 py-6">
+  <section class="mx-auto max-w-7xl px-5 pb-6">
     {#if connectionStatus === 'disconnected'}
       <YnabConnectPanel status="disconnected" onConnect={startYnabOAuth} />
     {:else if connectionStatus === 'expired' && charts.length === 0}

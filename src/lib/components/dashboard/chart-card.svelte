@@ -1,13 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import {
-    ArrowDown,
-    ArrowUp,
-    Copy,
-    GripVertical,
-    Pencil,
-    Trash2
-  } from '@lucide/svelte';
+  import { ArrowDown, ArrowUp, Copy, GripVertical, Pencil, Trash2 } from '@lucide/svelte';
   import { getChartMetadata, type ChartConfig, type ChartSize } from '$lib/app/chart-config';
   import ChartRenderer from '$lib/charts/chart-renderer.svelte';
   import type { ChartResult } from '$lib/charts/types';
@@ -108,7 +101,7 @@
   ondrop={handleDrop}
 >
   <div class="flex items-start justify-between gap-3">
-    <div class="flex min-w-0 items-start gap-2">
+    <div class="flex h-10 min-w-0 items-start gap-2">
       {#if editMode}
         <button
           type="button"
@@ -119,26 +112,13 @@
         >
           <GripVertical size={16} />
         </button>
-      {/if}
 
-      <div class="min-w-0">
-        <div class="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 class="min-w-0 font-semibold break-words">{chart.title}</h2>
-        </div>
-        <p class="mt-1 text-xs leading-5 text-muted-foreground">
-          {getChartMetadata(chart)}
-        </p>
-      </div>
-    </div>
-
-    <div class="flex shrink-0 flex-wrap items-center gap-1">
-      {#if editMode}
-        <div class="grid grid-cols-3 w-[6.75rem] overflow-hidden rounded-md border border-border bg-background">
+        <div class="grid h-10 grid-cols-3 overflow-hidden rounded-sm border border-border bg-card">
           {#each sizeOptions as option (option.value)}
             <button
               type="button"
               class={cn(
-                'flex items-center justify-center size-9 text-xs border-r border-border transition last:border-r-0 hover:bg-muted',
+                'flex w-9 items-center justify-center border-r border-border text-xs transition last:border-r-0 hover:bg-muted',
                 chart.size === option.value && 'bg-primary text-primary-foreground hover:bg-primary'
               )}
               title={`${option.label} card`}
@@ -151,7 +131,21 @@
             </button>
           {/each}
         </div>
-        <Button
+      {:else}
+        <div class="min-w-0">
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 class="min-w-0 font-semibold break-words">{chart.title}</h2>
+          </div>
+          <p class="mt-1 text-xs leading-5 text-muted-foreground">
+            {getChartMetadata(chart)}
+          </p>
+        </div>
+      {/if}
+    </div>
+
+    <div class="flex shrink-0 flex-wrap items-center gap-1">
+      {#if editMode}
+        <!-- <Button
           size="icon"
           variant="secondary"
           title="Duplicate"
@@ -160,7 +154,7 @@
           onclick={() => onDuplicate(chart)}
         >
           <Copy size={16} />
-        </Button>
+        </Button> -->
         <Button
           size="icon"
           variant="danger-outline"
