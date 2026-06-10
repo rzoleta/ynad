@@ -33,7 +33,7 @@
   );
 </script>
 
-<section class={cn('mx-auto', previewClass)}>
+<section class={cn('mx-auto w-full', previewClass)}>
   <ChartRenderer
     {result}
     {chart}

@@ -194,11 +194,8 @@
             <GranularityControl {chart} onChange={updateDraft} compact />
             <DateRangeControl {chart} onChange={updateDraft} compact />
           </div>
-          <div class="flex flex-1 flex-col">
-            <div class="flex-[1]"></div>
-            <div class="flex-[2] flex justify-center">
-              <ChartPreview {chart} {data} {weekStart} />
-            </div>
+          <div class="flex flex-1 flex-col justify-start">
+            <ChartPreview {chart} {data} {weekStart} />
           </div>
         </div>
       </div>
