@@ -91,7 +91,7 @@
 <article
   role="listitem"
   class={cn(
-    'rounded-lg border border-border bg-card p-4 shadow-sm transition',
+    'rounded-lg border border-border bg-card p-4 transition',
     editMode && 'ring-1 ring-primary/15',
     cardSpan
   )}
