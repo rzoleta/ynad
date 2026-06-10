@@ -133,12 +133,12 @@
 
     <div class="flex shrink-0 flex-wrap items-center gap-1">
       {#if editMode}
-        <div class="grid grid-cols-3 w-[6rem] overflow-hidden rounded-md border border-border bg-background">
+        <div class="grid grid-cols-3 w-[6.75rem] overflow-hidden rounded-md border border-border bg-background">
           {#each sizeOptions as option (option.value)}
             <button
               type="button"
               class={cn(
-                'flex items-center justify-center h-8 text-xs border-r border-border transition last:border-r-0 hover:bg-muted',
+                'flex items-center justify-center size-9 text-xs border-r border-border transition last:border-r-0 hover:bg-muted',
                 chart.size === option.value && 'bg-primary text-primary-foreground hover:bg-primary'
               )}
               title={`${option.label} card`}
