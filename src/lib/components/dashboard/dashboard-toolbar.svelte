@@ -36,20 +36,22 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
-      <span class="text-sm text-muted-foreground">Updated {formatDateTime(lastUpdated)}</span>
-      <Button
-        size="icon"
-        variant="secondary"
-        title="Refresh YNAB data"
-        aria-label="Refresh YNAB data"
-        disabled={!canRefresh || isRefreshing}
-        onclick={onRefresh}
-      >
-        <RefreshCcw size={17} class={isRefreshing ? 'animate-spin' : ''} />
-      </Button>
-      <Button size="icon" variant="secondary" title="Settings" aria-label="Settings" href={resolve('/app/settings')}>
-        <Settings size={17} />
-      </Button>
+      {#if !editMode}
+        <span class="text-sm text-muted-foreground">Updated {formatDateTime(lastUpdated)}</span>
+        <Button
+          size="icon"
+          variant="secondary"
+          title="Refresh YNAB data"
+          aria-label="Refresh YNAB data"
+          disabled={!canRefresh || isRefreshing}
+          onclick={onRefresh}
+        >
+          <RefreshCcw size={17} class={isRefreshing ? 'animate-spin' : ''} />
+        </Button>
+        <Button size="icon" variant="secondary" title="Settings" aria-label="Settings" href={resolve('/app/settings')}>
+          <Settings size={17} />
+        </Button>
+      {/if}
       <Button
         variant="secondary"
         aria-pressed={editMode}
@@ -64,14 +66,16 @@
           Edit dashboard
         {/if}
       </Button>
-      <Button
-        variant="primary"
-        {disabled}
-        onclick={() => onAddChart('spending')}
-      >
-        <Plus size={17} />
-        Add chart
-      </Button>
+      {#if !editMode}
+        <Button
+          variant="primary"
+          {disabled}
+          onclick={() => onAddChart('spending')}
+        >
+          <Plus size={17} />
+          Add chart
+        </Button>
+      {/if}
     </div>
   </div>
 </header>
