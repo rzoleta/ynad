@@ -22,10 +22,12 @@
   } from '$lib/app/settings';
   import { startYnabOAuth } from '$lib/ynab/auth';
   import { Button } from '$lib/components/ui/button/index.js';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 
   let token = $state<string | null>(null);
   let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
   let weekStart = $state<WeekStart>(7);
+  let disconnectDialogOpen = $state(false);
   const queryClient = useQueryClient();
 
   const weekStartOptions = [
@@ -76,7 +78,6 @@
   }
 
   async function disconnect() {
-    if (!confirm('Disconnect YNAB and delete all local YNAD data on this browser?')) return;
     clearLocalUserData();
     queryClient.clear();
     await goto(resolve('/'));
@@ -161,10 +162,30 @@
         {#if connectionStatus === 'expired'}
           <Button variant="primary" onclick={startYnabOAuth}>Reconnect YNAB</Button>
         {/if}
-        <Button variant="danger" onclick={disconnect}>
-          <Unplug size={16} />
-          Disconnect YNAB
-        </Button>
+        <AlertDialog.Root bind:open={disconnectDialogOpen}>
+          <AlertDialog.Trigger>
+            {#snippet child({ props })}
+              <Button variant="danger" {...props}>
+                <Unplug size={16} />
+                Disconnect YNAB
+              </Button>
+            {/snippet}
+          </AlertDialog.Trigger>
+          <AlertDialog.Content>
+            <AlertDialog.Header>
+              <AlertDialog.Title>Disconnect YNAB?</AlertDialog.Title>
+              <AlertDialog.Description>
+                This will disconnect YNAB and delete all local YNAD data stored in this browser.
+              </AlertDialog.Description>
+            </AlertDialog.Header>
+            <AlertDialog.Footer>
+              <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+              <AlertDialog.Action variant="danger" onclick={disconnect}>
+                Disconnect
+              </AlertDialog.Action>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog.Root>
       </div>
     </div>
   </section>

@@ -32,6 +32,7 @@
   import EmptyDashboard from '$lib/components/dashboard/empty-dashboard.svelte';
   import YnabConnectPanel from '$lib/components/dashboard/ynab-connect-panel.svelte';
   import YnabErrorBanner from '$lib/components/dashboard/ynab-error-banner.svelte';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
   import { fetchNormalizedBudgetSnapshot } from '$lib/ynab/snapshot';
   import { getYnabErrorCode, getYnabErrorMessage } from '$lib/ynab/errors';
   import { startYnabOAuth } from '$lib/ynab/auth';
@@ -47,6 +48,8 @@
   let lastRateLimitError = $state<unknown>(null);
   let now = $state(Date.now());
   let manualRefreshInProgress = $state(false);
+  let chartPendingDelete = $state<ChartConfig | null>(null);
+  let deleteChartDialogOpen = $state(false);
 
   const reorderFlipDurationMs = 180;
 
@@ -184,9 +187,21 @@
   }
 
   function deleteEditingChart(chart: ChartConfig) {
-    if (!confirm(`Delete "${chart.title}"?`)) return;
-    persist(charts.filter((item) => item.id !== chart.id));
+    chartPendingDelete = chart;
+    deleteChartDialogOpen = true;
+  }
+
+  function confirmDeleteEditingChart() {
+    if (!chartPendingDelete) return;
+    persist(charts.filter((item) => item.id !== chartPendingDelete?.id));
+    chartPendingDelete = null;
+    deleteChartDialogOpen = false;
     closeEditor();
+  }
+
+  function setDeleteChartDialogOpen(open: boolean) {
+    deleteChartDialogOpen = open;
+    if (!open) chartPendingDelete = null;
   }
 
   function handleChartDragConsider(event: CustomEvent<DndEvent<ChartDndItem>>) {
@@ -349,6 +364,27 @@
     onCancel={closeEditor}
     onDelete={isEditingExistingChart ? deleteEditingChart : undefined}
   />
+
+  <AlertDialog.Root open={deleteChartDialogOpen} onOpenChange={setDeleteChartDialogOpen}>
+    <AlertDialog.Content>
+      <AlertDialog.Header>
+        <AlertDialog.Title>Delete chart?</AlertDialog.Title>
+        <AlertDialog.Description>
+          {#if chartPendingDelete}
+            This will remove "{chartPendingDelete.title}" from this dashboard.
+          {:else}
+            This will remove the chart from this dashboard.
+          {/if}
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+      <AlertDialog.Footer>
+        <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+        <AlertDialog.Action variant="danger" onclick={confirmDeleteEditingChart}>
+          Delete
+        </AlertDialog.Action>
+      </AlertDialog.Footer>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
 </main>
 
 <style>
