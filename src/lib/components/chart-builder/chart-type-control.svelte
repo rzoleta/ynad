@@ -32,7 +32,7 @@
         type="button"
         class={cn(
           'flex min-h-20 flex-col items-start justify-between rounded-md border border-border bg-background p-3 text-left text-sm transition hover:bg-muted',
-          chart.type === option.value && 'border-primary bg-primary/10 text-primary'
+          chart.type === option.value && 'border-foreground bg-muted text-foreground'
         )}
         aria-pressed={chart.type === option.value}
         onclick={() => setType(option.value)}
