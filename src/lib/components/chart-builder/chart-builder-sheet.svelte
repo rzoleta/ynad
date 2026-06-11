@@ -157,7 +157,13 @@
           {chart.title}
         </p>
       </div>
-      <Button size="icon" variant="secondary" title="Close" aria-label="Close chart builder" onclick={cancel}>
+      <Button
+        size="icon"
+        variant="secondary"
+        title="Close"
+        aria-label="Close chart builder"
+        onclick={cancel}
+      >
         <X size={17} />
       </Button>
     </div>
@@ -193,7 +199,7 @@
       </form>
 
       <div class="min-w-0 border-t border-border bg-background/65 p-5 lg:border-t-0 lg:border-l">
-        <div class="lg:sticky lg:top-5 flex min-h-[calc(100vh-2.5rem)] flex-col">
+        <div class="flex min-h-[calc(100vh-2.5rem)] flex-col lg:sticky lg:top-5">
           <div class="mb-4 flex flex-wrap items-end gap-3">
             <div class="flex min-w-0 flex-1 flex-row gap-5">
               <TitleField {chart} onChange={updateDraft} compact />
@@ -213,7 +219,7 @@
       class="sticky bottom-0 flex items-center justify-end gap-2 border-t border-border bg-card/95 p-4 backdrop-blur"
     >
       {#if onDelete}
-        <Button class="mr-auto" variant="destructive" onclick={deleteChart}>Delete</Button>
+        <Button class="mr-auto" variant="danger" onclick={deleteChart}>Delete</Button>
       {/if}
       <Button variant="secondary" onclick={cancel}>Cancel</Button>
       <Button variant="primary" disabled={!canSave} onclick={save}>Save</Button>
