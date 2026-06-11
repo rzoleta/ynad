@@ -85,14 +85,7 @@
   const canRefresh = $derived(Boolean(token));
   const isRefreshing = $derived(budgetSelectionQuery.isFetching || snapshotQuery.isFetching);
   const dashboardError = $derived(snapshotQuery.error ?? budgetSelectionQuery.error ?? null);
-  const isSnapshotLoading = $derived(
-    Boolean(
-      token &&
-      budgetId &&
-      ((!snapshotQuery.data && snapshotQuery.isFetching) || manualRefreshInProgress) &&
-      !dashboardError
-    )
-  );
+  const isSnapshotLoading = $derived(Boolean(isRefreshing));
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
   const dragDisabled = $derived(isSnapshotLoading || charts.length < 2);
   const isEditingExistingChart = $derived(
