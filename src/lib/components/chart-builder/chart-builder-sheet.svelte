@@ -240,12 +240,14 @@
           <PayeeFilterControl {chart} {payees} onChange={updateDraft} />
         </section>
 
-        <section class="space-y-4 p-5">
-          <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            Number
-          </h3>
-          <NumberMetricControls {chart} onChange={updateDraft} />
-        </section>
+        {#if chart.type === 'number'}
+          <section class="space-y-4 p-5">
+            <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+              Number
+            </h3>
+            <NumberMetricControls {chart} onChange={updateDraft} />
+          </section>
+        {/if}
       </form>
 
       <div

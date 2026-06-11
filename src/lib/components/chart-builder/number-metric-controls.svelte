@@ -82,43 +82,42 @@
   }
 </script>
 
-<div class="grid gap-3 sm:grid-cols-3">
-  <label class="field">
-    <span>Metric</span>
-    <Select.Root type="single" value={metric} {disabled} onValueChange={setMetric}>
-      <Select.Trigger class="w-full">{metricLabel}</Select.Trigger>
-      <Select.Content>
-        {#each metricOptions as option (option.value)}
-          <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
-        {/each}
-      </Select.Content>
-    </Select.Root>
-  </label>
-  <label class="field">
-    <span>Operation</span>
-    <Select.Root type="single" value={operation} {disabled} onValueChange={setOperation}>
-      <Select.Trigger class="w-full">{operationLabel}</Select.Trigger>
-      <Select.Content>
-        {#each operationOptions[metric] as option (option.value)}
-          <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
-        {/each}
-      </Select.Content>
-    </Select.Root>
-  </label>
-  <label class="field">
-    <span>Period</span>
-    <Select.Root
-      type="single"
-      value={period}
-      disabled={disabled || operation === 'current'}
-      onValueChange={setPeriod}
-    >
-      <Select.Trigger class="w-full">{periodLabel}</Select.Trigger>
-      <Select.Content>
-        {#each periodOptions as option (option.value)}
-          <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
-        {/each}
-      </Select.Content>
-    </Select.Root>
-  </label>
-</div>
+{#if !disabled}
+  <div class="grid gap-3 sm:grid-cols-3">
+    <label class="field">
+      <span>Metric</span>
+      <Select.Root type="single" value={metric} {disabled} onValueChange={setMetric}>
+        <Select.Trigger class="w-full">{metricLabel}</Select.Trigger>
+        <Select.Content>
+          {#each metricOptions as option (option.value)}
+            <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+    </label>
+    <label class="field">
+      <span>Operation</span>
+      <Select.Root type="single" value={operation} {disabled} onValueChange={setOperation}>
+        <Select.Trigger class="w-full">{operationLabel}</Select.Trigger>
+        <Select.Content>
+          {#each operationOptions[metric] as option (option.value)}
+            <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+    </label>
+    {#if operation !== 'current'}
+      <label class="field">
+        <span>Period</span>
+        <Select.Root type="single" value={period} onValueChange={setPeriod}>
+          <Select.Trigger class="w-full">{periodLabel}</Select.Trigger>
+          <Select.Content>
+            {#each periodOptions as option (option.value)}
+              <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      </label>
+    {/if}
+  </div>
+{/if}
