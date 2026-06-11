@@ -259,7 +259,7 @@
   {#if result.status === 'number'}
     <div class={cn('flex items-center rounded-md bg-card p-5', placeholderHeightClass)}>
       <div class="min-w-0">
-        <p class="text-sm text-muted-foreground capitalize">{result.label}</p>
+        <p class="text-sm text-muted-foreground">{chart.title}</p>
         <p class="mt-2 text-4xl font-semibold break-words">
           {formatMilliunits(result.valueMilliunits, displayCurrency)}
         </p>

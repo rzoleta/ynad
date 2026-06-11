@@ -48,14 +48,16 @@
         <GripVertical size={16} />
       </button>
 
-      <div class="min-w-0">
-        <div class="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 class="min-w-0 font-semibold break-words">{chart.title}</h2>
+      {#if chart.type !== 'number'}
+        <div class="min-w-0">
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 class="min-w-0 font-semibold break-words">{chart.title}</h2>
+          </div>
+          <p class="mt-1 text-xs leading-5 text-muted-foreground">
+            {getChartMetadata(chart)}
+          </p>
         </div>
-        <p class="mt-1 text-xs leading-5 text-muted-foreground">
-          {getChartMetadata(chart)}
-        </p>
-      </div>
+      {/if}
     </div>
 
     <div class="flex shrink-0 flex-wrap items-center gap-1">
