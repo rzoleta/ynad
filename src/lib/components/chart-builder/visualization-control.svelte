@@ -33,7 +33,7 @@
         <button
           type="button"
           class={cn(
-            'flex min-h-10 items-center justify-center gap-2 border-r border-border px-2 text-sm transition last:border-r-0 hover:bg-muted',
+            'flex min-h-10 cursor-pointer items-center justify-center gap-2 border-r border-border px-2 text-sm transition last:border-r-0 hover:bg-muted',
             chart.visualization === option.value &&
               'bg-primary text-primary-foreground hover:bg-primary'
           )}
