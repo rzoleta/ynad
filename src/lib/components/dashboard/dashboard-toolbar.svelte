@@ -33,6 +33,19 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-muted-foreground">Refreshed {formatDateTime(lastUpdated)}</span>
+
+        <Button
+          size="icon"
+          variant="secondary"
+          title="Refresh YNAB data"
+          aria-label="Refresh YNAB data"
+          disabled={!canRefresh || isRefreshing}
+          onclick={onRefresh}
+        >
+          <RefreshCcw size={17} class={isRefreshing ? 'animate-spin' : ''} />
+        </Button>
+
         <Button
           size="icon"
           variant="secondary"
@@ -58,17 +71,5 @@
 </div>
 
 <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-  <div class="flex flex-row items-center space-x-3">
-    <Button
-      size="icon"
-      variant="secondary"
-      title="Refresh YNAB data"
-      aria-label="Refresh YNAB data"
-      disabled={!canRefresh || isRefreshing}
-      onclick={onRefresh}
-    >
-      <RefreshCcw size={17} class={isRefreshing ? 'animate-spin' : ''} />
-    </Button>
-    <span class="text-sm text-muted-foreground">Refreshed {formatDateTime(lastUpdated)}</span>
-  </div>
+  <div class="flex flex-row items-center space-x-3"></div>
 </div>
