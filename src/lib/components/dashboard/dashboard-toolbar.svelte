@@ -33,7 +33,11 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm text-muted-foreground">Refreshed {formatDateTime(lastUpdated)}</span>
+        {#if isRefreshing}
+          <span class="text-sm text-muted-foreground">Refreshing...</span>
+        {:else}
+          <span class="text-sm text-muted-foreground">Refreshed {formatDateTime(lastUpdated)}</span>
+        {/if}
 
         <Button
           size="icon"
