@@ -347,7 +347,7 @@
               cScale={pieColorScale}
               innerRadius={0.58}
               padAngle={0.02}
-              labels={true}
+              labels={{ value: 'label' }}
               props={{ tooltip: { item: { format: formatTooltipValue } } }}
             />
           {:else if hasBreakdown && breakdownData && breakdownSeries.length > 0}
