@@ -22,19 +22,16 @@
   }
 </script>
 
-<div class="field">
-  <span>Breakdown</span>
-  <Select.Root
-    type="single"
-    value={chart.breakdown ?? 'none'}
-    {disabled}
-    onValueChange={setBreakdown}
-  >
-    <Select.Trigger class="w-full">{label}</Select.Trigger>
-    <Select.Content>
-      {#each options as option (option.value)}
-        <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
-      {/each}
-    </Select.Content>
-  </Select.Root>
-</div>
+{#if !disabled}
+  <div class="field">
+    <span>Breakdown</span>
+    <Select.Root type="single" value={chart.breakdown ?? 'none'} onValueChange={setBreakdown}>
+      <Select.Trigger class="w-full">{label}</Select.Trigger>
+      <Select.Content>
+        {#each options as option (option.value)}
+          <Select.Item value={option.value} label={option.label}>{option.label}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+  </div>
+{/if}
