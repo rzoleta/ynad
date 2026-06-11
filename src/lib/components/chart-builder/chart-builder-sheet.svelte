@@ -1,6 +1,8 @@
 <script lang="ts">
   import { X } from '@lucide/svelte';
   import { tick } from 'svelte';
+  import { cubicIn, cubicOut, quintOut } from 'svelte/easing';
+  import { fade, fly } from 'svelte/transition';
   import {
     isChartPreviewable,
     normalizeChartForType,
@@ -50,6 +52,33 @@
   const categoryGroups = $derived(data?.categoryGroups ?? []);
   const categories = $derived(data?.categories ?? []);
   const payees = $derived(data?.payees ?? []);
+  const reduceMotion = $derived(
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  function sheetTransition(
+    node: Element,
+    { duration = 420, outro = false }: { duration?: number; outro?: boolean } = {}
+  ) {
+    const distance = Math.min(96, node.getBoundingClientRect().width * 0.08);
+    const eased = outro ? cubicIn : quintOut;
+
+    return {
+      duration: reduceMotion ? 80 : duration,
+      easing: eased,
+      css: (t: number, u: number) => {
+        const travel = outro ? u * distance : u * distance;
+        const blur = reduceMotion ? 0 : u * 12;
+        const scale = outro ? 0.985 + t * 0.015 : 0.975 + t * 0.025;
+
+        return `
+          opacity: ${0.2 + t * 0.8};
+          transform: translate3d(${travel}px, 0, 0) scale(${scale});
+          filter: blur(${blur}px);
+        `;
+      }
+    };
+  }
 
   function updateDraft(next: ChartConfig) {
     onChange(normalizeChartForType(next));
@@ -141,16 +170,28 @@
     class="fixed inset-0 z-40 cursor-default bg-black/35"
     aria-label="Close chart builder"
     onclick={cancel}
+    in:fade={{ duration: reduceMotion ? 80 : 220, easing: cubicOut }}
+    out:fade={{ duration: reduceMotion ? 80 : 180, easing: cubicIn }}
   ></button>
   <div
     bind:this={dialogElement}
-    class="fixed inset-0 z-50 flex flex-col border-l border-border bg-card shadow-2xl lg:left-auto lg:w-[min(1680px,96vw)]"
+    class="fixed inset-0 z-50 flex origin-right flex-col overflow-hidden border-l border-border bg-card shadow-2xl shadow-black/20 lg:left-auto lg:w-[min(1680px,96vw)]"
     role="dialog"
     aria-modal="true"
     aria-labelledby="chart-builder-title"
     aria-describedby="chart-builder-description"
+    in:sheetTransition={{ duration: 460 }}
+    out:sheetTransition={{ duration: 260, outro: true }}
   >
-    <div class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+    <div
+      class="flex items-start justify-between gap-4 border-b border-border px-5 py-4"
+      in:fly={{
+        x: reduceMotion ? 0 : 18,
+        duration: reduceMotion ? 80 : 360,
+        delay: 90,
+        easing: quintOut
+      }}
+    >
       <div>
         <h2 id="chart-builder-title" class="text-xl font-semibold">Chart builder</h2>
         <p id="chart-builder-description" class="mt-1 text-sm text-muted-foreground">
@@ -171,7 +212,16 @@
     <div
       class="grid flex-1 gap-0 overflow-y-auto lg:grid-cols-[minmax(360px,420px)_minmax(720px,1fr)]"
     >
-      <form class="min-w-0 divide-y divide-border" onsubmit={(event) => event.preventDefault()}>
+      <form
+        class="min-w-0 divide-y divide-border"
+        onsubmit={(event) => event.preventDefault()}
+        in:fly={{
+          x: reduceMotion ? 0 : 26,
+          duration: reduceMotion ? 80 : 400,
+          delay: 130,
+          easing: quintOut
+        }}
+      >
         <section class="space-y-4 p-5">
           <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
             Basics
@@ -198,7 +248,15 @@
         </section>
       </form>
 
-      <div class="min-w-0 border-t border-border bg-background/65 p-5 lg:border-t-0 lg:border-l">
+      <div
+        class="min-w-0 border-t border-border bg-background/65 p-5 lg:border-t-0 lg:border-l"
+        in:fly={{
+          x: reduceMotion ? 0 : 34,
+          duration: reduceMotion ? 80 : 440,
+          delay: 180,
+          easing: quintOut
+        }}
+      >
         <div class="flex min-h-[calc(100vh-2.5rem)] flex-col lg:sticky lg:top-5">
           <div class="mb-4 flex flex-wrap items-end gap-3">
             <div class="flex min-w-0 flex-1 flex-row gap-5">
@@ -217,6 +275,12 @@
 
     <div
       class="sticky bottom-0 flex items-center justify-end gap-2 border-t border-border bg-card/95 p-4 backdrop-blur"
+      in:fly={{
+        y: reduceMotion ? 0 : 18,
+        duration: reduceMotion ? 80 : 340,
+        delay: 230,
+        easing: quintOut
+      }}
     >
       {#if onDelete}
         <Button class="mr-auto" variant="danger" onclick={deleteChart}>Delete</Button>
