@@ -47,7 +47,7 @@
     return () => observer.disconnect();
   });
 
-  const tooltipYPosition = $derived(chartHeight / 2);
+  const tooltipYPosition = $derived(chartHeight * 0.25);
 
   const displayCurrency = $derived(currency ?? normalizeCurrencyFormat());
   const visual = $derived(
