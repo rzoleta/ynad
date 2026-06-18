@@ -5,6 +5,7 @@ import { getCategoryLabel, UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categor
 import { makeTimeBuckets, resolveDateRange, isIsoDateInRange } from '$lib/domain/dates';
 import { getPayeeKey } from '$lib/domain/payees';
 import type { Milliunits, NormalizedBudgetData, TransactionEntry } from '$lib/domain/types';
+import { aggregatePieSlices } from './pie';
 import type {
   BreakdownGroup,
   BreakdownTimeSeriesPoint,
@@ -139,7 +140,7 @@ function getIncomePieSlices(entries: TransactionEntry[]): PieSlicePoint[] {
     byPayee.set(key, { key, label, valueMilliunits: entry.amountMilliunits });
   }
 
-  return [...byPayee.values()].sort(sortPieSlices);
+  return aggregatePieSlices([...byPayee.values()]);
 }
 
 function matchesAccount(
@@ -161,10 +162,6 @@ function matchesPayee(entry: TransactionEntry, chart: ChartConfig): boolean {
   return chart.payees.payees.some((payee) =>
     payee.id ? payee.id === entry.payeeId : payee.name === entry.payeeName
   );
-}
-
-function sortPieSlices(left: PieSlicePoint, right: PieSlicePoint): number {
-  return right.valueMilliunits - left.valueMilliunits || left.label.localeCompare(right.label);
 }
 
 function normalizeLabel(value: string | undefined): string {

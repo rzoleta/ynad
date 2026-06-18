@@ -5,6 +5,7 @@
   import { CircleDollarSign, LoaderCircle } from '@lucide/svelte';
   import * as Chart from '$lib/components/ui/chart';
   import type { ChartConfig as AppChartConfig, ChartType } from '$lib/app/chart-config';
+  import { OTHER_PIE_SLICE_KEY } from '$lib/charts/pie';
   import { chartColorForKey, type ChartBreakdownData, type ChartResult } from '$lib/charts/types';
   import { formatMilliunits, normalizeCurrencyFormat } from '$lib/domain/currency';
   import type { CurrencyFormat } from '$lib/domain/types';
@@ -73,7 +74,10 @@
         ...point,
         key: 'key' in point ? point.key : point.bucketId,
         value: Math.abs(point.valueMilliunits),
-        fill: chartColorForKey('key' in point ? point.key : point.bucketId)
+        fill:
+          'key' in point && point.key === OTHER_PIE_SLICE_KEY
+            ? 'var(--muted-foreground)'
+            : chartColorForKey('key' in point ? point.key : point.bucketId)
       }));
     }
 
@@ -270,7 +274,7 @@
       <p id={summaryId} class="sr-only">{chartAriaLabel}</p>
       <div
         bind:this={chartContainerRef}
-        class="rounded-md bg-card py-8 px-6"
+        class="rounded-md bg-card px-6 py-8"
         role="img"
         aria-labelledby={summaryId}
       >
@@ -420,7 +424,7 @@
       class={cn(
         'grid place-items-center rounded-md p-5 text-center',
         result.code === 'reconnect-required'
-          ? 'bg-card border border-border'
+          ? 'border border-border bg-card'
           : 'bg-danger/10 text-danger',
         placeholderHeightClass
       )}
@@ -428,13 +432,13 @@
     >
       <div>
         <p class="font-medium text-foreground">
-          {result.code === 'reconnect-required' ? 'YNAB connection expired' : 'Chart could not load'}
+          {result.code === 'reconnect-required'
+            ? 'YNAB connection expired'
+            : 'Chart could not load'}
         </p>
         <p class="mt-1 text-sm text-muted-foreground">{result.message}</p>
         {#if result.code === 'reconnect-required' && onReconnect}
-          <Button variant="primary" class="mt-4" onclick={onReconnect}>
-            Reconnect to YNAB
-          </Button>
+          <Button variant="primary" class="mt-4" onclick={onReconnect}>Reconnect to YNAB</Button>
         {/if}
       </div>
     </div>

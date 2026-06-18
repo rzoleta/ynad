@@ -5,6 +5,7 @@ import { getCategoryLabel, UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categor
 import { makeTimeBuckets, resolveDateRange, isIsoDateInRange } from '$lib/domain/dates';
 import { getPayeeKey } from '$lib/domain/payees';
 import type { Milliunits, NormalizedBudgetData, TransactionEntry } from '$lib/domain/types';
+import { aggregatePieSlices } from './pie';
 import { isYnabInflowCategory } from './income';
 import type {
   BreakdownGroup,
@@ -135,7 +136,7 @@ function getSpendingPieSlices(
   }
 
   const excluded: NonNullable<Extract<ChartResult, { status: 'series' }>['excluded']> = [];
-  const points = [...byCategory.values()].sort(sortPieSlices).filter((point) => {
+  const points = [...byCategory.values()].filter((point) => {
     if (point.valueMilliunits > 0) return true;
 
     excluded.push({
@@ -147,7 +148,7 @@ function getSpendingPieSlices(
     return false;
   });
 
-  return { points, excluded };
+  return { points: aggregatePieSlices(points), excluded };
 }
 
 function matchesAccount(
@@ -176,10 +177,6 @@ function matchesPayee(entry: TransactionEntry, chart: ChartConfig): boolean {
   return chart.payees.payees.some((payee) =>
     payee.id ? payee.id === entry.payeeId : payee.name === entry.payeeName
   );
-}
-
-function sortPieSlices(left: PieSlicePoint, right: PieSlicePoint): number {
-  return right.valueMilliunits - left.valueMilliunits || left.label.localeCompare(right.label);
 }
 
 function computeSpendingBreakdown(

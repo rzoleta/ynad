@@ -17,6 +17,7 @@ import type {
   PieSlicePoint,
   TimeSeriesPoint
 } from './types';
+import { aggregatePieSlices } from './pie';
 import { emptyChartResult } from './types';
 
 export type BalanceSeriesData = {
@@ -36,15 +37,17 @@ export function computeBalanceChart(
 
   if (chart.visualization === 'pie') {
     const transactionLookup = transactionsByAccount(snapshot.transactions);
-    const points = accounts
-      .map(
-        (account): PieSlicePoint => ({
-          key: account.id,
-          label: account.name,
-          valueMilliunits: getAccountBalanceAtDate(account, transactionLookup, range.to)
-        })
-      )
-      .filter((point) => point.valueMilliunits !== 0);
+    const points = aggregatePieSlices(
+      accounts
+        .map(
+          (account): PieSlicePoint => ({
+            key: account.id,
+            label: account.name,
+            valueMilliunits: getAccountBalanceAtDate(account, transactionLookup, range.to)
+          })
+        )
+        .filter((point) => point.valueMilliunits !== 0)
+    );
 
     return points.length ? { status: 'series', visualization: 'pie', points } : emptyChartResult();
   }
