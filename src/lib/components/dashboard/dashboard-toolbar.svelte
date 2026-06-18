@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { Plus, RefreshCcw, Settings } from '@lucide/svelte';
+  import { Moon, Plus, RefreshCcw, Settings, Sun } from '@lucide/svelte';
+  import { mode, toggleMode } from 'mode-watcher';
   import type { ChartType } from '$lib/app/chart-config';
   import { formatDateTime } from '$lib/utils';
   import { Button } from '$lib/components/ui/button/index.js';
@@ -22,6 +23,11 @@
     onRefresh: () => void | Promise<void>;
     onAddChart: (type: ChartType) => void;
   } = $props();
+
+  const darkModeEnabled = $derived(mode.current === 'dark');
+  const themeToggleLabel = $derived(
+    darkModeEnabled ? 'Switch to light mode' : 'Switch to dark mode'
+  );
 </script>
 
 <div>
@@ -48,6 +54,20 @@
           onclick={onRefresh}
         >
           <RefreshCcw size={17} class={isRefreshing ? 'animate-spin' : ''} />
+        </Button>
+
+        <Button
+          size="icon"
+          variant="secondary"
+          title={themeToggleLabel}
+          aria-label={themeToggleLabel}
+          onclick={toggleMode}
+        >
+          {#if darkModeEnabled}
+            <Sun size={17} />
+          {:else}
+            <Moon size={17} />
+          {/if}
         </Button>
 
         <Button
