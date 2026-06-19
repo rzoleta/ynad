@@ -1,4 +1,4 @@
 - [ ] Others category in Pie Chart
 - [ ] Breakdown field in Pie Chart
-- [ ] Breakdown per Category Group
+- [x] Breakdown per Category Group
 - [ ] Select All/None per Category

@@ -6,7 +6,7 @@ export const chartTypeSchema = z.enum(['balance', 'spending', 'income', 'number'
 export const visualizationSchema = z.enum(['line', 'bar', 'pie']);
 export const chartSizeSchema = z.enum(['small', 'medium', 'large']);
 export const granularitySchema = z.enum(['daily', 'weekly', 'monthly', 'yearly']);
-export const breakdownSchema = z.enum(['none', 'account', 'category', 'payee']);
+export const breakdownSchema = z.enum(['none', 'account', 'category', 'category-group', 'payee']);
 
 export const datePresets = [
   'this-month',
@@ -298,7 +298,12 @@ function normalizeBreakdownForType(type: ChartType, breakdown: Breakdown | undef
   }
 
   if (type === 'spending' || type === 'income') {
-    if (breakdown === 'account' || breakdown === 'category' || breakdown === 'payee') {
+    if (
+      breakdown === 'account' ||
+      breakdown === 'category' ||
+      breakdown === 'category-group' ||
+      breakdown === 'payee'
+    ) {
       return breakdown;
     }
   }
@@ -367,6 +372,7 @@ export function getBreakdownOptions(type: ChartType): Array<{ value: Breakdown; 
       { value: 'none', label: 'None' },
       { value: 'account', label: 'Account' },
       { value: 'category', label: 'Category' },
+      { value: 'category-group', label: 'Category Group' },
       { value: 'payee', label: 'Payee' }
     ];
   }

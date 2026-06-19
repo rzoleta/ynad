@@ -1,7 +1,11 @@
 import type { Breakdown, ChartConfig, Granularity } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
 import { defaultAccountsForChart } from '$lib/domain/accounts';
-import { getCategoryLabel, UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categories';
+import {
+  getCategoryGroup,
+  getCategoryLabel,
+  UNCATEGORIZED_CATEGORY_ID
+} from '$lib/domain/categories';
 import { makeTimeBuckets, resolveDateRange, isIsoDateInRange } from '$lib/domain/dates';
 import { getPayeeKey } from '$lib/domain/payees';
 import type { Milliunits, NormalizedBudgetData, TransactionEntry } from '$lib/domain/types';
@@ -263,6 +267,10 @@ function getIncomeBreakdownGroup(
     const key = entry.categoryId ?? UNCATEGORIZED_CATEGORY_ID;
     const label = getCategoryLabel(entry.categoryId, snapshot.categoryById);
     return { key, label };
+  }
+
+  if (dimension === 'category-group') {
+    return getCategoryGroup(entry.categoryId, snapshot.categoryById, snapshot.categoryGroups);
   }
 
   const key = getPayeeKey(entry.payeeId, entry.payeeName) ?? 'unknown-payee';
