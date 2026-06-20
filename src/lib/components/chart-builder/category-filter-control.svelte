@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check, Search } from '@lucide/svelte';
+  import { Search } from '@lucide/svelte';
   import * as Select from '$lib/components/ui/select/index.js';
   import type { ChartConfig } from '$lib/app/chart-config';
   import { UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categories';
@@ -78,11 +78,15 @@
     return categoryIds.length > 0 && categoryIds.every((id) => selectedIdSet.has(id));
   }
 
-  function toggleCategoryIds(categoryIds: string[]) {
+  function areNoCategoryIdsSelected(categoryIds: string[]) {
+    return categoryIds.every((id) => !selectedIdSet.has(id));
+  }
+
+  function setCategoryIdsSelection(categoryIds: string[], selected: boolean) {
     if (!enabled) return;
-    const nextIds = areCategoryIdsSelected(categoryIds)
-      ? selectedIds.filter((id) => !categoryIds.includes(id))
-      : [...new Set([...selectedIds, ...categoryIds])];
+    const nextIds = selected
+      ? [...new Set([...selectedIds, ...categoryIds])]
+      : selectedIds.filter((id) => !categoryIds.includes(id));
 
     onChange({
       ...chart,
@@ -90,12 +94,8 @@
     });
   }
 
-  function isCategoryGroupSelected(groupId: string) {
-    return areCategoryIdsSelected(categoryIdsByGroup.get(groupId) ?? []);
-  }
-
-  function toggleCategoryGroup(groupId: string) {
-    toggleCategoryIds(categoryIdsByGroup.get(groupId) ?? []);
+  function setCategoryGroupSelection(groupId: string, selected: boolean) {
+    setCategoryIdsSelection(categoryIdsByGroup.get(groupId) ?? [], selected);
   }
 </script>
 
@@ -151,27 +151,31 @@
           {#if uncategorizedMatch}
             <Select.Group>
               <Select.GroupHeading
-                class="relative flex w-full items-center rounded-sm py-1.5 pr-8 pl-2 text-sm text-foreground"
+                class="flex w-full items-center gap-2 rounded-sm py-1.5 pr-2 pl-2 text-sm text-foreground"
               >
-                {@const uncategorizedSelected = areCategoryIdsSelected([UNCATEGORIZED_CATEGORY_ID])}
-                <span class="flex flex-1 shrink-0 gap-2 whitespace-nowrap">Uncategorized</span>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={uncategorizedSelected}
-                  aria-label={uncategorizedSelected
-                    ? 'Deselect Uncategorized'
-                    : 'Select Uncategorized'}
-                  class="absolute end-2 flex size-3.5 cursor-pointer items-center justify-center rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  onclick={(event) => {
-                    event.stopPropagation();
-                    toggleCategoryIds([UNCATEGORIZED_CATEGORY_ID]);
-                  }}
-                >
-                  {#if uncategorizedSelected}
-                    <Check class="size-4" />
-                  {/if}
-                </button>
+                <span class="min-w-0 flex-1 truncate whitespace-nowrap">Uncategorized</span>
+                <div class="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Select all Uncategorized"
+                    disabled={areCategoryIdsSelected([UNCATEGORIZED_CATEGORY_ID])}
+                    class="cursor-pointer text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:no-underline disabled:opacity-40"
+                    onclick={(event) => {
+                      event.stopPropagation();
+                      setCategoryIdsSelection([UNCATEGORIZED_CATEGORY_ID], true);
+                    }}>All</button
+                  >
+                  <button
+                    type="button"
+                    aria-label="Deselect all Uncategorized"
+                    disabled={areNoCategoryIdsSelected([UNCATEGORIZED_CATEGORY_ID])}
+                    class="cursor-pointer text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:no-underline disabled:opacity-40"
+                    onclick={(event) => {
+                      event.stopPropagation();
+                      setCategoryIdsSelection([UNCATEGORIZED_CATEGORY_ID], false);
+                    }}>None</button
+                  >
+                </div>
               </Select.GroupHeading>
               <Select.Item value={UNCATEGORIZED_CATEGORY_ID} label="Uncategorized" class="pl-6">
                 Uncategorized
@@ -179,29 +183,34 @@
             </Select.Group>
           {/if}
           {#each filteredGroups as group (group.id)}
+            {@const groupCategoryIds = categoryIdsByGroup.get(group.id) ?? []}
             <Select.Group>
               <Select.GroupHeading
-                class="relative flex w-full items-center rounded-sm py-1.5 pr-8 pl-2 text-sm text-foreground"
+                class="flex w-full items-center gap-2 rounded-sm py-1.5 pr-2 pl-2 text-sm text-foreground"
               >
-                {@const groupSelected = isCategoryGroupSelected(group.id)}
-                <span class="flex flex-1 shrink-0 gap-2 whitespace-nowrap">{group.name}</span>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={groupSelected}
-                  aria-label={groupSelected
-                    ? `Deselect all ${group.name}`
-                    : `Select all ${group.name}`}
-                  class="absolute end-2 flex size-3.5 cursor-pointer items-center justify-center rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  onclick={(event) => {
-                    event.stopPropagation();
-                    toggleCategoryGroup(group.id);
-                  }}
-                >
-                  {#if groupSelected}
-                    <Check class="size-4" />
-                  {/if}
-                </button>
+                <span class="min-w-0 flex-1 truncate whitespace-nowrap">{group.name}</span>
+                <div class="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label={`Select all ${group.name}`}
+                    disabled={areCategoryIdsSelected(groupCategoryIds)}
+                    class="cursor-pointer text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:no-underline disabled:opacity-40"
+                    onclick={(event) => {
+                      event.stopPropagation();
+                      setCategoryGroupSelection(group.id, true);
+                    }}>All</button
+                  >
+                  <button
+                    type="button"
+                    aria-label={`Deselect all ${group.name}`}
+                    disabled={areNoCategoryIdsSelected(groupCategoryIds)}
+                    class="cursor-pointer text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:no-underline disabled:opacity-40"
+                    onclick={(event) => {
+                      event.stopPropagation();
+                      setCategoryGroupSelection(group.id, false);
+                    }}>None</button
+                  >
+                </div>
               </Select.GroupHeading>
               {#each group.categories as category (category.id)}
                 <Select.Item value={category.id} label={category.name} class="pl-6">

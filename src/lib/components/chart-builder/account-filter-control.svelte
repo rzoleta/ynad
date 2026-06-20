@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check, Search } from '@lucide/svelte';
+  import { Search } from '@lucide/svelte';
   import * as Select from '$lib/components/ui/select/index.js';
   import type { ChartConfig } from '$lib/app/chart-config';
   import type { AccountEntity } from '$lib/domain/types';
@@ -63,15 +63,15 @@
     return accountIds.length > 0 && accountIds.every((id) => selectedIdSet.has(id));
   }
 
-  function isAccountGroupSelected(groupKey: AccountGroupKey) {
-    return areAccountIdsSelected(accountIdsByGroup.get(groupKey) ?? []);
+  function areNoAccountIdsSelected(accountIds: string[]) {
+    return accountIds.every((id) => !selectedIdSet.has(id));
   }
 
-  function toggleAccountGroup(groupKey: AccountGroupKey) {
+  function setAccountGroupSelection(groupKey: AccountGroupKey, selected: boolean) {
     const accountIds = accountIdsByGroup.get(groupKey) ?? [];
-    const nextIds = areAccountIdsSelected(accountIds)
-      ? selectedIds.filter((id) => !accountIds.includes(id))
-      : [...new Set([...selectedIds, ...accountIds])];
+    const nextIds = selected
+      ? [...new Set([...selectedIds, ...accountIds])]
+      : selectedIds.filter((id) => !accountIds.includes(id));
 
     onChange({
       ...chart,
@@ -129,29 +129,34 @@
         <div class="px-2 py-3 text-sm text-muted-foreground">No matching accounts.</div>
       {:else}
         {#each filteredGroups as group (group.key)}
+          {@const groupAccountIds = accountIdsByGroup.get(group.key) ?? []}
           <Select.Group>
             <Select.GroupHeading
-              class="relative flex w-full items-center rounded-sm py-1.5 pr-8 pl-2 text-sm text-foreground"
+              class="flex w-full items-center gap-2 rounded-sm py-1.5 pr-2 pl-2 text-sm text-foreground"
             >
-              {@const groupSelected = isAccountGroupSelected(group.key)}
-              <span class="flex flex-1 shrink-0 gap-2 whitespace-nowrap">{group.label}</span>
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={groupSelected}
-                aria-label={groupSelected
-                  ? `Deselect all ${group.label}`
-                  : `Select all ${group.label}`}
-                class="absolute end-2 flex size-3.5 cursor-pointer items-center justify-center rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                onclick={(event) => {
-                  event.stopPropagation();
-                  toggleAccountGroup(group.key);
-                }}
-              >
-                {#if groupSelected}
-                  <Check class="size-4" />
-                {/if}
-              </button>
+              <span class="min-w-0 flex-1 truncate whitespace-nowrap">{group.label}</span>
+              <div class="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={`Select all ${group.label}`}
+                  disabled={areAccountIdsSelected(groupAccountIds)}
+                  class="cursor-pointer text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:no-underline disabled:opacity-40"
+                  onclick={(event) => {
+                    event.stopPropagation();
+                    setAccountGroupSelection(group.key, true);
+                  }}>All</button
+                >
+                <button
+                  type="button"
+                  aria-label={`Deselect all ${group.label}`}
+                  disabled={areNoAccountIdsSelected(groupAccountIds)}
+                  class="cursor-pointer text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:no-underline disabled:opacity-40"
+                  onclick={(event) => {
+                    event.stopPropagation();
+                    setAccountGroupSelection(group.key, false);
+                  }}>None</button
+                >
+              </div>
             </Select.GroupHeading>
             {#each group.accounts as account (account.id)}
               <Select.Item value={account.id} label={account.name} class="pl-6">
