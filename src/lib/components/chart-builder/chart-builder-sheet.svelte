@@ -251,7 +251,7 @@
       </form>
 
       <div
-        class="min-w-0 border-t border-border bg-background/65 p-5 lg:border-t-0 lg:border-l"
+        class="flex min-w-0 flex-col border-t border-border bg-background/65 p-5 lg:border-t-0 lg:border-l"
         in:fly={{
           x: reduceMotion ? 0 : 34,
           duration: reduceMotion ? 80 : 440,
@@ -259,7 +259,7 @@
           easing: quintOut
         }}
       >
-        <div class="flex min-h-[calc(100vh-2.5rem)] flex-col lg:sticky lg:top-5">
+        <div class="flex min-h-0 flex-1 flex-col lg:sticky lg:top-5">
           <div class="mb-4 flex flex-wrap items-end gap-3">
             <div class="flex min-w-0 flex-1 flex-row gap-5">
               <TitleField {chart} onChange={updateDraft} compact />
