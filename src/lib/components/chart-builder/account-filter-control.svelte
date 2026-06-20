@@ -154,7 +154,7 @@
               </button>
             </Select.GroupHeading>
             {#each group.accounts as account (account.id)}
-              <Select.Item value={account.id} label={account.name}>
+              <Select.Item value={account.id} label={account.name} class="pl-6">
                 <span class="flex items-center gap-2">
                   <span class="truncate">{account.name}</span>
                   {#if account.closed}

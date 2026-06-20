@@ -173,7 +173,7 @@
                   {/if}
                 </button>
               </Select.GroupHeading>
-              <Select.Item value={UNCATEGORIZED_CATEGORY_ID} label="Uncategorized">
+              <Select.Item value={UNCATEGORIZED_CATEGORY_ID} label="Uncategorized" class="pl-6">
                 Uncategorized
               </Select.Item>
             </Select.Group>
@@ -204,7 +204,7 @@
                 </button>
               </Select.GroupHeading>
               {#each group.categories as category (category.id)}
-                <Select.Item value={category.id} label={category.name}>
+                <Select.Item value={category.id} label={category.name} class="pl-6">
                   <span class="flex items-center gap-2">
                     <span class="truncate">{category.name}</span>
                     {#if category.hidden}
