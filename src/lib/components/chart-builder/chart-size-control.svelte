@@ -37,7 +37,7 @@
       <button
         type="button"
         class={cn(
-          'flex items-center justify-center gap-1 border-r border-border transition last:border-r-0 hover:bg-muted',
+          'flex cursor-pointer items-center justify-center gap-1 border-r border-border transition last:border-r-0 hover:bg-muted',
           compact ? 'h-8 px-1.5 text-xs' : 'min-h-10 gap-2 px-4 text-sm',
           chart.size === option.value && 'bg-primary text-primary-foreground hover:bg-primary'
         )}
