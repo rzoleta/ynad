@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Search } from '@lucide/svelte';
+  import { Check, Search } from '@lucide/svelte';
   import * as Select from '$lib/components/ui/select/index.js';
   import type { ChartConfig } from '$lib/app/chart-config';
   import { UNCATEGORIZED_CATEGORY_ID } from '$lib/domain/categories';
@@ -22,6 +22,9 @@
 
   const enabled = $derived(chart.type === 'spending');
   const groups = $derived(groupCategories(categoryGroups, categories));
+  const categoryIdsByGroup = $derived(
+    new Map(groups.map((group) => [group.id, group.categories.map((category) => category.id)]))
+  );
   const allIds = $derived([
     UNCATEGORIZED_CATEGORY_ID,
     ...categories.map((category) => category.id)
@@ -29,6 +32,7 @@
   const selectedIds = $derived(
     chart.categories?.mode === 'all' || !chart.categories ? allIds : chart.categories.ids
   );
+  const selectedIdSet = $derived(new Set(selectedIds));
 
   const filteredGroups = $derived(
     query.trim() === ''
@@ -69,6 +73,30 @@
     if (!enabled) return;
     onChange({ ...chart, categories: { mode: 'selected', ids: [] } });
   }
+
+  function areCategoryIdsSelected(categoryIds: string[]) {
+    return categoryIds.length > 0 && categoryIds.every((id) => selectedIdSet.has(id));
+  }
+
+  function toggleCategoryIds(categoryIds: string[]) {
+    if (!enabled) return;
+    const nextIds = areCategoryIdsSelected(categoryIds)
+      ? selectedIds.filter((id) => !categoryIds.includes(id))
+      : [...new Set([...selectedIds, ...categoryIds])];
+
+    onChange({
+      ...chart,
+      categories: { mode: 'selected', ids: nextIds }
+    });
+  }
+
+  function isCategoryGroupSelected(groupId: string) {
+    return areCategoryIdsSelected(categoryIdsByGroup.get(groupId) ?? []);
+  }
+
+  function toggleCategoryGroup(groupId: string) {
+    toggleCategoryIds(categoryIdsByGroup.get(groupId) ?? []);
+  }
 </script>
 
 {#if enabled}
@@ -78,12 +106,12 @@
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="text-xs text-muted-foreground hover:underline"
+          class="cursor-pointer text-xs text-muted-foreground hover:underline"
           onclick={selectAll}>All</button
         >
         <button
           type="button"
-          class="text-xs text-muted-foreground hover:underline"
+          class="cursor-pointer text-xs text-muted-foreground hover:underline"
           onclick={selectNone}>None</button
         >
       </div>
@@ -122,7 +150,29 @@
         {:else}
           {#if uncategorizedMatch}
             <Select.Group>
-              <Select.GroupHeading>Uncategorized</Select.GroupHeading>
+              <Select.GroupHeading
+                class="relative flex w-full items-center rounded-sm py-1.5 pr-8 pl-2 text-sm text-foreground"
+              >
+                {@const uncategorizedSelected = areCategoryIdsSelected([UNCATEGORIZED_CATEGORY_ID])}
+                <span class="flex flex-1 shrink-0 gap-2 whitespace-nowrap">Uncategorized</span>
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={uncategorizedSelected}
+                  aria-label={uncategorizedSelected
+                    ? 'Deselect Uncategorized'
+                    : 'Select Uncategorized'}
+                  class="absolute end-2 flex size-3.5 cursor-pointer items-center justify-center rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  onclick={(event) => {
+                    event.stopPropagation();
+                    toggleCategoryIds([UNCATEGORIZED_CATEGORY_ID]);
+                  }}
+                >
+                  {#if uncategorizedSelected}
+                    <Check class="size-4" />
+                  {/if}
+                </button>
+              </Select.GroupHeading>
               <Select.Item value={UNCATEGORIZED_CATEGORY_ID} label="Uncategorized">
                 Uncategorized
               </Select.Item>
@@ -130,7 +180,29 @@
           {/if}
           {#each filteredGroups as group (group.id)}
             <Select.Group>
-              <Select.GroupHeading>{group.name}</Select.GroupHeading>
+              <Select.GroupHeading
+                class="relative flex w-full items-center rounded-sm py-1.5 pr-8 pl-2 text-sm text-foreground"
+              >
+                {@const groupSelected = isCategoryGroupSelected(group.id)}
+                <span class="flex flex-1 shrink-0 gap-2 whitespace-nowrap">{group.name}</span>
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={groupSelected}
+                  aria-label={groupSelected
+                    ? `Deselect all ${group.name}`
+                    : `Select all ${group.name}`}
+                  class="absolute end-2 flex size-3.5 cursor-pointer items-center justify-center rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  onclick={(event) => {
+                    event.stopPropagation();
+                    toggleCategoryGroup(group.id);
+                  }}
+                >
+                  {#if groupSelected}
+                    <Check class="size-4" />
+                  {/if}
+                </button>
+              </Select.GroupHeading>
               {#each group.categories as category (category.id)}
                 <Select.Item value={category.id} label={category.name}>
                   <span class="flex items-center gap-2">

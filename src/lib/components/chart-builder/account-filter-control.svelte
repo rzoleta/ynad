@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { Search } from '@lucide/svelte';
+  import { Check, Search } from '@lucide/svelte';
   import * as Select from '$lib/components/ui/select/index.js';
   import type { ChartConfig } from '$lib/app/chart-config';
   import type { AccountEntity } from '$lib/domain/types';
   import { groupAccounts } from './filter-summary';
+  import type { AccountGroupKey } from './filter-summary';
 
   let {
     chart,
@@ -18,8 +19,12 @@
   let query = $state('');
 
   const groups = $derived(groupAccounts(accounts));
+  const accountIdsByGroup = $derived(
+    new Map(groups.map((group) => [group.key, group.accounts.map((account) => account.id)]))
+  );
   const allIds = $derived(accounts.map((account) => account.id));
   const selectedIds = $derived(chart.accounts.mode === 'all' ? allIds : chart.accounts.ids);
+  const selectedIdSet = $derived(new Set(selectedIds));
 
   const filteredGroups = $derived(
     query.trim() === ''
@@ -53,6 +58,26 @@
   function selectNone() {
     onChange({ ...chart, accounts: { mode: 'selected', ids: [] } });
   }
+
+  function areAccountIdsSelected(accountIds: string[]) {
+    return accountIds.length > 0 && accountIds.every((id) => selectedIdSet.has(id));
+  }
+
+  function isAccountGroupSelected(groupKey: AccountGroupKey) {
+    return areAccountIdsSelected(accountIdsByGroup.get(groupKey) ?? []);
+  }
+
+  function toggleAccountGroup(groupKey: AccountGroupKey) {
+    const accountIds = accountIdsByGroup.get(groupKey) ?? [];
+    const nextIds = areAccountIdsSelected(accountIds)
+      ? selectedIds.filter((id) => !accountIds.includes(id))
+      : [...new Set([...selectedIds, ...accountIds])];
+
+    onChange({
+      ...chart,
+      accounts: { mode: 'selected', ids: nextIds }
+    });
+  }
 </script>
 
 <div class="field">
@@ -61,12 +86,12 @@
     <div class="flex items-center gap-2">
       <button
         type="button"
-        class="text-xs text-muted-foreground hover:underline"
+        class="cursor-pointer text-xs text-muted-foreground hover:underline"
         onclick={selectAll}>All</button
       >
       <button
         type="button"
-        class="text-xs text-muted-foreground hover:underline"
+        class="cursor-pointer text-xs text-muted-foreground hover:underline"
         onclick={selectNone}>None</button
       >
     </div>
@@ -105,7 +130,29 @@
       {:else}
         {#each filteredGroups as group (group.key)}
           <Select.Group>
-            <Select.GroupHeading>{group.label}</Select.GroupHeading>
+            <Select.GroupHeading
+              class="relative flex w-full items-center rounded-sm py-1.5 pr-8 pl-2 text-sm text-foreground"
+            >
+              {@const groupSelected = isAccountGroupSelected(group.key)}
+              <span class="flex flex-1 shrink-0 gap-2 whitespace-nowrap">{group.label}</span>
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={groupSelected}
+                aria-label={groupSelected
+                  ? `Deselect all ${group.label}`
+                  : `Select all ${group.label}`}
+                class="absolute end-2 flex size-3.5 cursor-pointer items-center justify-center rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                onclick={(event) => {
+                  event.stopPropagation();
+                  toggleAccountGroup(group.key);
+                }}
+              >
+                {#if groupSelected}
+                  <Check class="size-4" />
+                {/if}
+              </button>
+            </Select.GroupHeading>
             {#each group.accounts as account (account.id)}
               <Select.Item value={account.id} label={account.name}>
                 <span class="flex items-center gap-2">
