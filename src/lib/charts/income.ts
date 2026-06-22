@@ -33,7 +33,8 @@ export function computeIncomeChart(
   const entries = getIncomeEntries(chart, snapshot);
 
   if (chart.visualization === 'pie') {
-    const points = getIncomePieSlices(entries);
+    const dimension = (chart.breakdown ?? 'payee') as Exclude<Breakdown, 'none'>;
+    const points = getIncomePieSlices(entries, dimension, snapshot);
 
     return points.length ? { status: 'series', visualization: 'pie', points } : emptyChartResult();
   }
@@ -128,23 +129,26 @@ export function isYnabInflowCategory(
   );
 }
 
-function getIncomePieSlices(entries: TransactionEntry[]): PieSlicePoint[] {
-  const byPayee = new Map<string, PieSlicePoint>();
+function getIncomePieSlices(
+  entries: TransactionEntry[],
+  dimension: Exclude<Breakdown, 'none'>,
+  snapshot: NormalizedBudgetData
+): PieSlicePoint[] {
+  const byGroup = new Map<string, PieSlicePoint>();
 
   for (const entry of entries) {
-    const key = getPayeeKey(entry.payeeId, entry.payeeName) ?? 'income';
-    const label = entry.payeeName || 'Income';
-    const current = byPayee.get(key);
+    const { key, label } = getIncomeBreakdownGroup(entry, dimension, snapshot);
+    const current = byGroup.get(key);
 
     if (current) {
       current.valueMilliunits += entry.amountMilliunits;
       continue;
     }
 
-    byPayee.set(key, { key, label, valueMilliunits: entry.amountMilliunits });
+    byGroup.set(key, { key, label, valueMilliunits: entry.amountMilliunits });
   }
 
-  return aggregatePieSlices([...byPayee.values()]);
+  return aggregatePieSlices([...byGroup.values()]);
 }
 
 function matchesAccount(

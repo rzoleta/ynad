@@ -155,7 +155,11 @@ export function normalizeChartForType(chart: ChartConfig): ChartConfig {
   next.numberPeriod = undefined;
 
   if (next.visualization === 'pie') {
-    next.breakdown = undefined;
+    if (next.type === 'spending' || next.type === 'income') {
+      next.breakdown = normalizePieBreakdownForType(next.type, next.breakdown);
+    } else {
+      next.breakdown = undefined;
+    }
   } else {
     next.breakdown = normalizeBreakdownForType(next.type, next.breakdown);
   }
@@ -184,7 +188,9 @@ export function getGeneratedTitle(chart: ChartConfig): string {
   }
 
   if (chart.type === 'income') {
-    if (chart.visualization === 'pie') return 'Income by Payee';
+    if (chart.visualization === 'pie') {
+      return `Income by ${breakdownLabel(chart.breakdown ?? 'payee')}`;
+    }
     return `${granularityTitle(chart.granularity ?? 'monthly')} Income`;
   }
 
@@ -201,7 +207,9 @@ export function getGeneratedTitle(chart: ChartConfig): string {
     )} ${metricLabel}`;
   }
 
-  if (chart.visualization === 'pie') return 'Spending by Category';
+  if (chart.visualization === 'pie') {
+    return `Spending by ${breakdownLabel(chart.breakdown ?? 'category')}`;
+  }
   return `${granularityTitle(chart.granularity ?? 'monthly')} Spending`;
 }
 
@@ -311,6 +319,30 @@ function normalizeBreakdownForType(type: ChartType, breakdown: Breakdown | undef
   return 'none';
 }
 
+function normalizePieBreakdownForType(
+  type: 'spending' | 'income',
+  breakdown: Breakdown | undefined
+): Breakdown {
+  if (
+    breakdown === 'account' ||
+    breakdown === 'category' ||
+    breakdown === 'category-group' ||
+    breakdown === 'payee'
+  ) {
+    return breakdown;
+  }
+
+  return type === 'spending' ? 'category' : 'payee';
+}
+
+function breakdownLabel(breakdown: Breakdown): string {
+  if (breakdown === 'account') return 'Account';
+  if (breakdown === 'category') return 'Category';
+  if (breakdown === 'category-group') return 'Category Group';
+  if (breakdown === 'payee') return 'Payee';
+  return 'None';
+}
+
 function normalizeNumberOperation(
   metric: NumberMetric,
   operation: NumberOperation | undefined
@@ -359,7 +391,10 @@ function titleCase(value: string) {
     .join(' ');
 }
 
-export function getBreakdownOptions(type: ChartType): Array<{ value: Breakdown; label: string }> {
+export function getBreakdownOptions(
+  type: ChartType,
+  visualization: Visualization | undefined
+): Array<{ value: Breakdown; label: string }> {
   if (type === 'balance') {
     return [
       { value: 'none', label: 'None' },
@@ -368,6 +403,15 @@ export function getBreakdownOptions(type: ChartType): Array<{ value: Breakdown; 
   }
 
   if (type === 'spending' || type === 'income') {
+    if (visualization === 'pie') {
+      return [
+        { value: 'account', label: 'Account' },
+        { value: 'category', label: 'Category' },
+        { value: 'category-group', label: 'Category Group' },
+        { value: 'payee', label: 'Payee' }
+      ];
+    }
+
     return [
       { value: 'none', label: 'None' },
       { value: 'account', label: 'Account' },

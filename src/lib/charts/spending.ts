@@ -34,7 +34,8 @@ export function computeSpendingChart(
   const entries = getSpendingEntries(chart, snapshot);
 
   if (chart.visualization === 'pie') {
-    const { points, excluded } = getSpendingPieSlices(entries, snapshot);
+    const dimension = (chart.breakdown ?? 'category') as Exclude<Breakdown, 'none'>;
+    const { points, excluded } = getSpendingPieSlices(entries, dimension, snapshot);
 
     return points.length
       ? { status: 'series', visualization: 'pie', points, excluded }
@@ -118,29 +119,29 @@ export function isSpendingEntry(entry: TransactionEntry, snapshot: NormalizedBud
 
 function getSpendingPieSlices(
   entries: TransactionEntry[],
+  dimension: Exclude<Breakdown, 'none'>,
   snapshot: NormalizedBudgetData
 ): {
   points: PieSlicePoint[];
   excluded: NonNullable<Extract<ChartResult, { status: 'series' }>['excluded']>;
 } {
-  const byCategory = new Map<string, PieSlicePoint>();
+  const byGroup = new Map<string, PieSlicePoint>();
 
   for (const entry of entries) {
-    const key = entry.categoryId ?? UNCATEGORIZED_CATEGORY_ID;
-    const label = getCategoryLabel(entry.categoryId, snapshot.categoryById);
-    const current = byCategory.get(key);
+    const { key, label } = getSpendingBreakdownGroup(entry, dimension, snapshot);
     const valueMilliunits = -entry.amountMilliunits;
+    const current = byGroup.get(key);
 
     if (current) {
       current.valueMilliunits += valueMilliunits;
       continue;
     }
 
-    byCategory.set(key, { key, label, valueMilliunits });
+    byGroup.set(key, { key, label, valueMilliunits });
   }
 
   const excluded: NonNullable<Extract<ChartResult, { status: 'series' }>['excluded']> = [];
-  const points = [...byCategory.values()].filter((point) => {
+  const points = [...byGroup.values()].filter((point) => {
     if (point.valueMilliunits > 0) return true;
 
     excluded.push({

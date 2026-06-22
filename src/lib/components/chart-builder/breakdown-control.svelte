@@ -10,8 +10,10 @@
     onChange: (chart: ChartConfig) => void;
   } = $props();
 
-  const disabled = $derived(chart.type === 'number' || chart.visualization === 'pie');
-  const options = $derived(getBreakdownOptions(chart.type));
+  const disabled = $derived(
+    chart.type === 'number' || (chart.visualization === 'pie' && chart.type === 'balance')
+  );
+  const options = $derived(getBreakdownOptions(chart.type, chart.visualization));
   const label = $derived(
     options.find((option) => option.value === (chart.breakdown ?? 'none'))?.label ?? 'None'
   );
