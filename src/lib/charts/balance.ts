@@ -1,7 +1,7 @@
 import type { ChartConfig, Granularity } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
 import { defaultAccountsForChart } from '$lib/domain/accounts';
-import { makeTimeBuckets, resolveDateRange } from '$lib/domain/dates';
+import { makeTimeBuckets, resolveDateRange, formatLocalISODate } from '$lib/domain/dates';
 import type {
   AccountEntity,
   ISODate,
@@ -30,20 +30,20 @@ export function computeBalanceChart(
   snapshot: NormalizedBudgetData,
   weekStart: WeekStart
 ): ChartResult {
-  const range = resolveDateRange(chart.dateRange, snapshot);
   const accounts = getBalanceAccounts(chart, snapshot);
 
   if (accounts.length === 0) return emptyChartResult();
 
   if (chart.visualization === 'pie') {
     const transactionLookup = transactionsByAccount(snapshot.transactions);
+    const today = formatLocalISODate(new Date());
     const points = aggregatePieSlices(
       accounts
         .map(
           (account): PieSlicePoint => ({
             key: account.id,
             label: account.name,
-            valueMilliunits: getAccountBalanceAtDate(account, transactionLookup, range.to)
+            valueMilliunits: getAccountBalanceAtDate(account, transactionLookup, today)
           })
         )
         .filter((point) => point.valueMilliunits !== 0)

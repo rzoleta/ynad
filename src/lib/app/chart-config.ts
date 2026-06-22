@@ -220,7 +220,13 @@ export function maybeUpdateGeneratedTitle(chart: ChartConfig): ChartConfig {
 
 export function getChartMetadata(chart: ChartConfig): string {
   const normalized = normalizeChartForType(chart);
-  const parts = [dateRangeLabel(normalized.dateRange)];
+  const parts: string[] = [];
+
+  const isBalancePie = normalized.type === 'balance' && normalized.visualization === 'pie';
+
+  if (!isBalancePie) {
+    parts.push(dateRangeLabel(normalized.dateRange));
+  }
 
   if (normalized.type !== 'number' && normalized.visualization !== 'pie') {
     parts.push(granularityTitle(normalized.granularity ?? 'monthly'));
@@ -235,7 +241,9 @@ export function isChartPreviewable(chart: ChartConfig): boolean {
 
   const normalized = normalizeChartForType(parsed.data);
 
-  if (!isDateRangePreviewable(normalized.dateRange)) return false;
+  const isBalancePie = normalized.type === 'balance' && normalized.visualization === 'pie';
+
+  if (!isBalancePie && !isDateRangePreviewable(normalized.dateRange)) return false;
 
   if (normalized.type === 'number') {
     const metric = normalized.numberMetric;
