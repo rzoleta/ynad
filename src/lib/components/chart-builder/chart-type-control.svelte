@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChartColumn, Hash, ReceiptText, Wallet } from '@lucide/svelte';
+  import { ChartColumn, ReceiptText, Wallet } from '@lucide/svelte';
   import type { ChartConfig, ChartType } from '$lib/app/chart-config';
   import { cn } from '$lib/utils';
 
@@ -14,8 +14,7 @@
   const options = [
     { value: 'balance', label: 'Balance', icon: Wallet },
     { value: 'spending', label: 'Spending', icon: ReceiptText },
-    { value: 'income', label: 'Income', icon: ChartColumn },
-    { value: 'number', label: 'Number', icon: Hash }
+    { value: 'income', label: 'Income', icon: ChartColumn }
   ] satisfies Array<{ value: ChartType; label: string; icon: typeof Wallet }>;
 
   function setType(type: ChartType) {
@@ -25,7 +24,7 @@
 
 <div class="field">
   <span>Type</span>
-  <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+  <div class="grid grid-cols-3 gap-2">
     {#each options as option (option.value)}
       {@const Icon = option.icon}
       <button

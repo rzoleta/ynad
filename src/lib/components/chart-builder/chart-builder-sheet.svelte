@@ -18,7 +18,7 @@
   import ChartTypeControl from './chart-type-control.svelte';
   import DateRangeControl from './date-range-control.svelte';
   import GranularityControl from './granularity-control.svelte';
-  import NumberMetricControls from './number-metric-controls.svelte';
+  import NumberOperationControl from './number-operation-control.svelte';
   import PayeeFilterControl from './payee-filter-control.svelte';
   import TitleField from './title-field.svelte';
   import VisualizationControl from './visualization-control.svelte';
@@ -240,12 +240,12 @@
           <PayeeFilterControl {chart} {payees} onChange={updateDraft} />
         </section>
 
-        {#if chart.type === 'number'}
+        {#if chart.visualization === 'number'}
           <section class="space-y-4 p-5">
             <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
               Number
             </h3>
-            <NumberMetricControls {chart} onChange={updateDraft} />
+            <NumberOperationControl {chart} onChange={updateDraft} />
           </section>
         {/if}
       </form>

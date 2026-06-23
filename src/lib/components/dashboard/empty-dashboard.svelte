@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BarChart3, CircleDollarSign, Landmark, Sigma } from '@lucide/svelte';
+  import { BarChart3, CircleDollarSign, Landmark } from '@lucide/svelte';
   import type { ChartType } from '$lib/app/chart-config';
   import { Button } from '$lib/components/ui/button/index.js';
 
@@ -14,8 +14,7 @@
   const options = [
     { type: 'balance', label: 'Balance', icon: Landmark },
     { type: 'spending', label: 'Spending', icon: BarChart3 },
-    { type: 'income', label: 'Income', icon: CircleDollarSign },
-    { type: 'number', label: 'Number', icon: Sigma }
+    { type: 'income', label: 'Income', icon: CircleDollarSign }
   ] satisfies Array<{ type: ChartType; label: string; icon: typeof BarChart3 }>;
 </script>
 
@@ -31,11 +30,7 @@
     <div class="mt-6 flex flex-wrap justify-center gap-2">
       {#each options as option (option.type)}
         {@const Icon = option.icon}
-        <Button
-          variant={option.type === 'number' ? 'secondary' : 'primary'}
-          {disabled}
-          onclick={() => onAddChart(option.type)}
-        >
+        <Button variant="primary" {disabled} onclick={() => onAddChart(option.type)}>
           <Icon size={16} />
           {option.label}
         </Button>

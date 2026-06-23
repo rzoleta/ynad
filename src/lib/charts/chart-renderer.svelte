@@ -54,9 +54,7 @@
   const visual = $derived(
     result.status === 'series' ? result.visualization : (chart.visualization ?? 'bar')
   );
-  const seriesColorKey = $derived(
-    chart.type === 'number' ? `${chart.id}:${chart.numberMetric ?? 'number'}` : chart.id
-  );
+  const seriesColorKey = $derived(chart.id);
   const seriesColor = $derived(chartColorForKey(seriesColorKey));
 
   const breakdown = $derived.by<ChartBreakdownData | undefined>(() => {
@@ -442,7 +440,7 @@
         {/if}
       </div>
     </div>
-  {:else if type === 'number'}
+  {:else if chart.visualization === 'number'}
     <div class={cn('flex items-center rounded-md bg-card p-5', placeholderHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground">{result.message}</p>

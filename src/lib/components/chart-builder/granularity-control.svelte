@@ -19,7 +19,10 @@
     { value: 'yearly', label: 'Yearly' }
   ] satisfies Array<{ value: Granularity; label: string }>;
 
-  const disabled = $derived(chart.type === 'number' || chart.visualization === 'pie');
+  const disabled = $derived(
+    chart.visualization === 'pie' ||
+      (chart.visualization === 'number' && chart.numberOperation === 'current')
+  );
   const label = $derived(
     options.find((option) => option.value === chart.granularity)?.label ?? 'Not used'
   );

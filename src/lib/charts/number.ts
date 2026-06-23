@@ -1,15 +1,9 @@
-import type {
-  ChartConfig,
-  Granularity,
-  NumberMetric,
-  NumberOperation
-} from '$lib/app/chart-config';
+import type { ChartConfig, ChartType, Granularity, NumberOperation } from '$lib/app/chart-config';
 import type { WeekStart } from '$lib/app/settings';
 import { resolveDateRange } from '$lib/domain/dates';
 import type { Milliunits, NormalizedBudgetData } from '$lib/domain/types';
 import { getBalanceTimeSeries, getCombinedBalanceAtDate } from './balance';
 import { getIncomeTimeSeries } from './income';
-import { getNetIncomeTimeSeries } from './net-income';
 import { getSpendingTimeSeries } from './spending';
 import type { ChartNumberResult, ChartResult, TimeSeriesPoint } from './types';
 import { emptyChartResult } from './types';
@@ -19,26 +13,21 @@ export function computeNumberChart(
   snapshot: NormalizedBudgetData,
   weekStart: WeekStart
 ): ChartResult {
-  const metric = chart.numberMetric ?? 'spending';
-  const operation = normalizeOperation(metric, chart.numberOperation);
-  const granularity = chart.numberPeriod ?? 'monthly';
+  const operation = normalizeOperation(chart.type, chart.numberOperation);
+  const granularity = chart.granularity ?? 'monthly';
 
-  if (metric === 'balance') {
+  if (chart.type === 'balance') {
     return computeBalanceNumber(chart, snapshot, weekStart, operation, granularity);
   }
 
   const data =
-    metric === 'income'
+    chart.type === 'income'
       ? getIncomeTimeSeries(chart, snapshot, weekStart, granularity)
-      : metric === 'net-income'
-        ? getNetIncomeTimeSeries(chart, snapshot, weekStart, granularity)
-        : getSpendingTimeSeries(chart, snapshot, weekStart, granularity);
+      : getSpendingTimeSeries(chart, snapshot, weekStart, granularity);
 
-  const matchingEntryCount =
-    'matchingEntryCount' in data ? data.matchingEntryCount : data.entries.length;
-  if (matchingEntryCount === 0 || data.points.length === 0) return emptyChartResult();
+  if (data.entries.length === 0 || data.points.length === 0) return emptyChartResult();
 
-  return numberResult(metric, operation, valueForOperation(data.points, operation));
+  return numberResult(chart.type, operation, valueForOperation(data.points, operation));
 }
 
 function computeBalanceNumber(
@@ -79,22 +68,22 @@ function valueForOperation(points: TimeSeriesPoint[], operation: NumberOperation
 }
 
 function numberResult(
-  metric: NumberMetric,
+  type: ChartType,
   operation: NumberOperation,
   valueMilliunits: Milliunits
 ): ChartNumberResult {
   return {
     status: 'number',
     valueMilliunits,
-    label: `${operationLabel(operation)} ${metricLabel(metric)}`
+    label: `${operationLabel(operation)} ${typeLabel(type)}`
   };
 }
 
 function normalizeOperation(
-  metric: NumberMetric,
+  type: ChartType,
   operation: NumberOperation | undefined
 ): NumberOperation {
-  if (metric === 'balance') {
+  if (type === 'balance') {
     return operation === 'average' || operation === 'median' ? operation : 'current';
   }
 
@@ -119,7 +108,6 @@ function operationLabel(operation: NumberOperation): string {
   return 'Median';
 }
 
-function metricLabel(metric: NumberMetric): string {
-  if (metric === 'net-income') return 'Net Income';
-  return `${metric.slice(0, 1).toUpperCase()}${metric.slice(1)}`;
+function typeLabel(type: ChartType): string {
+  return `${type.slice(0, 1).toUpperCase()}${type.slice(1)}`;
 }

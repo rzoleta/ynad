@@ -11,7 +11,7 @@
   } = $props();
 
   const disabled = $derived(
-    chart.type === 'number' || (chart.visualization === 'pie' && chart.type === 'balance')
+    chart.visualization === 'number' || (chart.visualization === 'pie' && chart.type === 'balance')
   );
   const options = $derived(getBreakdownOptions(chart.type, chart.visualization));
   const label = $derived(

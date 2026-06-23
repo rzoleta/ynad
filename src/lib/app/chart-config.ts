@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
-export const chartTypeSchema = z.enum(['balance', 'spending', 'income', 'number']);
-export const visualizationSchema = z.enum(['line', 'bar', 'pie']);
+export const chartTypeSchema = z.enum(['balance', 'spending', 'income']);
+export const visualizationSchema = z.enum(['line', 'bar', 'pie', 'number']);
 export const chartSizeSchema = z.enum(['small', 'medium', 'large']);
 export const granularitySchema = z.enum(['daily', 'weekly', 'monthly', 'yearly']);
 export const breakdownSchema = z.enum(['none', 'account', 'category', 'category-group', 'payee']);
@@ -58,7 +58,6 @@ export const payeeFilterSchema = z.union([
   z.object({ mode: z.literal('selected'), payees: z.array(payeeRefSchema) })
 ]);
 
-export const numberMetricSchema = z.enum(['balance', 'spending', 'income', 'net-income']);
 export const numberOperationSchema = z.enum(['current', 'total', 'average', 'median']);
 
 export const chartConfigSchema = z.object({
@@ -74,9 +73,7 @@ export const chartConfigSchema = z.object({
   accounts: idFilterSchema,
   categories: idFilterSchema.optional(),
   payees: payeeFilterSchema.optional(),
-  numberMetric: numberMetricSchema.optional(),
-  numberOperation: numberOperationSchema.optional(),
-  numberPeriod: granularitySchema.optional()
+  numberOperation: numberOperationSchema.optional()
 });
 
 export const dashboardSchema = z.object({
@@ -93,7 +90,6 @@ export type DateRange = z.infer<typeof dateRangeSchema>;
 export type IdFilter = z.infer<typeof idFilterSchema>;
 export type PayeeRef = z.infer<typeof payeeRefSchema>;
 export type PayeeFilter = z.infer<typeof payeeFilterSchema>;
-export type NumberMetric = z.infer<typeof numberMetricSchema>;
 export type NumberOperation = z.infer<typeof numberOperationSchema>;
 export type ChartConfig = z.infer<typeof chartConfigSchema>;
 export type DashboardConfig = z.infer<typeof dashboardSchema>;
@@ -101,15 +97,13 @@ export type DashboardConfig = z.infer<typeof dashboardSchema>;
 const numberOperationDefaults = {
   balance: 'current',
   spending: 'total',
-  income: 'total',
-  'net-income': 'total'
-} satisfies Record<NumberMetric, NumberOperation>;
+  income: 'total'
+} satisfies Record<ChartType, NumberOperation>;
 
-const validNumberOperations: Record<NumberMetric, NumberOperation[]> = {
+const validNumberOperations: Record<ChartType, NumberOperation[]> = {
   balance: ['current', 'average', 'median'],
   spending: ['total', 'average', 'median'],
-  income: ['total', 'average', 'median'],
-  'net-income': ['total', 'average', 'median']
+  income: ['total', 'average', 'median']
 };
 
 export function createDefaultChart(type: ChartType): ChartConfig {
@@ -119,7 +113,7 @@ export function createDefaultChart(type: ChartType): ChartConfig {
     titleEdited: false,
     type,
     size: 'medium',
-    visualization: type === 'number' ? undefined : 'bar',
+    visualization: 'bar',
     breakdown: 'none',
     dateRange: { preset: 'last-12-months' },
     accounts: allIdFilter(),
@@ -135,33 +129,25 @@ export function normalizeChartForType(chart: ChartConfig): ChartConfig {
     accounts: normalizeIdFilter(chart.accounts)
   };
 
-  if (next.type === 'number') {
-    const metric = next.numberMetric ?? 'spending';
-
-    next.visualization = undefined;
-    next.breakdown = undefined;
-    next.granularity = undefined;
-    next.numberMetric = metric;
-    next.numberOperation = normalizeNumberOperation(metric, next.numberOperation);
-    next.numberPeriod = next.numberPeriod ?? 'monthly';
-
-    return maybeUpdateGeneratedTitle(next);
-  }
-
   next.visualization = next.visualization ?? defaultVisualizationForType(next.type);
-  next.granularity = next.visualization === 'pie' ? undefined : (next.granularity ?? 'monthly');
-  next.numberMetric = undefined;
-  next.numberOperation = undefined;
-  next.numberPeriod = undefined;
 
-  if (next.visualization === 'pie') {
-    if (next.type === 'spending' || next.type === 'income') {
-      next.breakdown = normalizePieBreakdownForType(next.type, next.breakdown);
-    } else {
-      next.breakdown = undefined;
-    }
+  if (next.visualization === 'number') {
+    next.breakdown = undefined;
+    next.granularity = next.granularity ?? 'monthly';
+    next.numberOperation = normalizeNumberOperation(next.type, next.numberOperation);
   } else {
-    next.breakdown = normalizeBreakdownForType(next.type, next.breakdown);
+    next.numberOperation = undefined;
+    next.granularity = next.visualization === 'pie' ? undefined : (next.granularity ?? 'monthly');
+
+    if (next.visualization === 'pie') {
+      if (next.type === 'spending' || next.type === 'income') {
+        next.breakdown = normalizePieBreakdownForType(next.type, next.breakdown);
+      } else {
+        next.breakdown = undefined;
+      }
+    } else {
+      next.breakdown = normalizeBreakdownForType(next.type, next.breakdown);
+    }
   }
 
   if (next.type === 'balance') {
@@ -184,6 +170,11 @@ export function normalizeChartForType(chart: ChartConfig): ChartConfig {
 export function getGeneratedTitle(chart: ChartConfig): string {
   if (chart.type === 'balance') {
     if (chart.visualization === 'pie') return 'Balance by Account';
+    if (chart.visualization === 'number') {
+      const operation = normalizeNumberOperation(chart.type, chart.numberOperation);
+      if (operation === 'current') return 'Current Balance';
+      return `${numberOperationLabel(operation)} ${granularityTitle(chart.granularity ?? 'monthly')} Balance`;
+    }
     return 'Net Worth';
   }
 
@@ -191,24 +182,21 @@ export function getGeneratedTitle(chart: ChartConfig): string {
     if (chart.visualization === 'pie') {
       return `Income by ${breakdownLabel(chart.breakdown ?? 'payee')}`;
     }
+    if (chart.visualization === 'number') {
+      const operation = normalizeNumberOperation(chart.type, chart.numberOperation);
+      if (operation === 'total') return 'Total Income';
+      return `${numberOperationLabel(operation)} ${granularityTitle(chart.granularity ?? 'monthly')} Income`;
+    }
     return `${granularityTitle(chart.granularity ?? 'monthly')} Income`;
-  }
-
-  if (chart.type === 'number') {
-    const metric = chart.numberMetric ?? 'spending';
-    const operation = normalizeNumberOperation(metric, chart.numberOperation);
-    const metricLabel = numberMetricLabel(metric);
-
-    if (operation === 'current') return `Current ${metricLabel}`;
-    if (operation === 'total') return `Total ${metricLabel}`;
-
-    return `${numberOperationLabel(operation)} ${granularityTitle(
-      chart.numberPeriod ?? 'monthly'
-    )} ${metricLabel}`;
   }
 
   if (chart.visualization === 'pie') {
     return `Spending by ${breakdownLabel(chart.breakdown ?? 'category')}`;
+  }
+  if (chart.visualization === 'number') {
+    const operation = normalizeNumberOperation(chart.type, chart.numberOperation);
+    if (operation === 'total') return 'Total Spending';
+    return `${numberOperationLabel(operation)} ${granularityTitle(chart.granularity ?? 'monthly')} Spending`;
   }
   return `${granularityTitle(chart.granularity ?? 'monthly')} Spending`;
 }
@@ -228,7 +216,7 @@ export function getChartMetadata(chart: ChartConfig): string {
     parts.push(dateRangeLabel(normalized.dateRange));
   }
 
-  if (normalized.type !== 'number' && normalized.visualization !== 'pie') {
+  if (normalized.visualization !== 'pie' && normalized.visualization !== 'number') {
     parts.push(granularityTitle(normalized.granularity ?? 'monthly'));
   }
 
@@ -245,15 +233,9 @@ export function isChartPreviewable(chart: ChartConfig): boolean {
 
   if (!isBalancePie && !isDateRangePreviewable(normalized.dateRange)) return false;
 
-  if (normalized.type === 'number') {
-    const metric = normalized.numberMetric;
+  if (normalized.visualization === 'number') {
     const operation = normalized.numberOperation;
-    return Boolean(
-      metric &&
-      operation &&
-      normalized.numberPeriod &&
-      validNumberOperations[metric].includes(operation)
-    );
+    return Boolean(operation && validNumberOperations[normalized.type].includes(operation));
   }
 
   if (!normalized.visualization) return false;
@@ -302,7 +284,7 @@ function normalizeDateRange(dateRange: DateRange): DateRange {
   return { preset: 'custom', from: dateRange.from, to: dateRange.to };
 }
 
-function defaultVisualizationForType(type: Exclude<ChartType, 'number'>): Visualization {
+function defaultVisualizationForType(type: ChartType): Visualization {
   return type === 'balance' ? 'line' : 'bar';
 }
 
@@ -352,11 +334,11 @@ function breakdownLabel(breakdown: Breakdown): string {
 }
 
 function normalizeNumberOperation(
-  metric: NumberMetric,
+  type: ChartType,
   operation: NumberOperation | undefined
 ): NumberOperation {
-  if (operation && validNumberOperations[metric].includes(operation)) return operation;
-  return numberOperationDefaults[metric];
+  if (operation && validNumberOperations[type].includes(operation)) return operation;
+  return numberOperationDefaults[type];
 }
 
 function isDateRangePreviewable(dateRange: DateRange): boolean {
@@ -381,11 +363,6 @@ function granularityTitle(granularity: Granularity) {
   if (granularity === 'weekly') return 'Weekly';
   if (granularity === 'yearly') return 'Yearly';
   return 'Monthly';
-}
-
-function numberMetricLabel(metric: NumberMetric) {
-  if (metric === 'net-income') return 'Net Income';
-  return titleCase(metric);
 }
 
 function numberOperationLabel(operation: NumberOperation) {

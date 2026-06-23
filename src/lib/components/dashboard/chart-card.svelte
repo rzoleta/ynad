@@ -48,7 +48,7 @@
         <GripVertical size={16} />
       </button>
 
-      {#if chart.type !== 'number'}
+      {#if chart.visualization !== 'number'}
         <div class="min-w-0">
           <div class="flex min-w-0 flex-wrap items-center gap-2">
             <h2 class="min-w-0 font-semibold break-words">{chart.title}</h2>

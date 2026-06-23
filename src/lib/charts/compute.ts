@@ -19,9 +19,9 @@ export function computeChart(
   }
 
   try {
+    if (chart.visualization === 'number') return computeNumberChart(chart, snapshot, weekStart);
     if (chart.type === 'balance') return computeBalanceChart(chart, snapshot, weekStart);
     if (chart.type === 'income') return computeIncomeChart(chart, snapshot, weekStart);
-    if (chart.type === 'number') return computeNumberChart(chart, snapshot, weekStart);
     return computeSpendingChart(chart, snapshot, weekStart);
   } catch (error) {
     return {
