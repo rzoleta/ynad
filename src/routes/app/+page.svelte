@@ -47,7 +47,6 @@
   let rateLimitPauseUntil = $state<number | null>(null);
   let lastRateLimitError = $state<unknown>(null);
   let now = $state(Date.now());
-  let manualRefreshInProgress = $state(false);
   let chartPendingDelete = $state<ChartConfig | null>(null);
   let deleteChartDialogOpen = $state(false);
 
@@ -100,6 +99,36 @@
     delayTouchStart: 120,
     useCursorForDetection: true,
     dropTargetClasses: dragDisabled ? [] : ['dashboard-grid-drop-target']
+  });
+  const compactNumberChartIds = $derived.by(() => {
+    const compactIds: string[] = [];
+    let row: ChartConfig[] = [];
+    let rowWidth = 0;
+
+    function flushRow() {
+      if (row.length === 0) return;
+
+      if (row.every((chart) => chart.visualization === 'number')) {
+        for (const chart of row) compactIds.push(chart.id);
+      }
+
+      row = [];
+      rowWidth = 0;
+    }
+
+    for (const chart of realChartItems(charts)) {
+      const span = chartGridColumnSpan(chart);
+
+      if (rowWidth > 0 && rowWidth + span > 3) flushRow();
+
+      row.push(chart);
+      rowWidth += span;
+
+      if (rowWidth >= 3) flushRow();
+    }
+
+    flushRow();
+    return compactIds;
   });
 
   onMount(() => {
@@ -209,22 +238,29 @@
     return items.filter((chart) => !chart[SHADOW_ITEM_MARKER_PROPERTY_NAME]);
   }
 
-  function chartGridSpan(chart: ChartConfig) {
-    if (chart.size === 'large') return 'md:col-span-3';
-    if (chart.size === 'medium') return 'md:col-span-2';
-    return '';
+  function chartGridColumnSpan(chart: ChartConfig) {
+    if (chart.size === 'large') return 3;
+    if (chart.size === 'medium') return 2;
+    return 1;
+  }
+
+  function chartGridSpan(chart: ChartConfig, compactNumberChart: boolean) {
+    const classes = [];
+
+    if (chart.size === 'large') classes.push('md:col-span-3');
+    if (chart.size === 'medium') classes.push('md:col-span-2');
+    if (chart.visualization === 'number') {
+      classes.push('self-start');
+      if (!compactNumberChart) classes.push('md:self-stretch');
+    }
+
+    return classes.join(' ');
   }
 
   async function refresh() {
-    manualRefreshInProgress = true;
-
-    try {
-      rateLimitPauseUntil = null;
-      await budgetSelectionQuery.refetch();
-      await snapshotQuery.refetch();
-    } finally {
-      manualRefreshInProgress = false;
-    }
+    rateLimitPauseUntil = null;
+    await budgetSelectionQuery.refetch();
+    await snapshotQuery.refetch();
   }
 
   function resultFor(chart: ChartConfig): ChartResult {
@@ -324,9 +360,10 @@
         onconsider={handleChartDragConsider}
         onfinalize={handleChartDragFinalize}
       >
-        {#each charts as chart, index (chart.id)}
+        {#each charts as chart (chart.id)}
+          {@const compactNumberChart = compactNumberChartIds.includes(chart.id)}
           <div
-            class={chartGridSpan(chart)}
+            class={chartGridSpan(chart, compactNumberChart)}
             role="listitem"
             aria-label={`${chart.title} chart`}
             animate:flip={{ duration: reorderFlipDurationMs }}
@@ -338,6 +375,7 @@
               dataLoading={isSnapshotLoading}
               disabled={isSnapshotLoading}
               total={charts.length}
+              {compactNumberChart}
               onEdit={openEdit}
               onReconnect={startYnabOAuth}
             />

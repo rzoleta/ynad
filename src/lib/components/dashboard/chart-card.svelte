@@ -15,6 +15,7 @@
     dataLoading,
     disabled = false,
     total,
+    compactNumberChart = chart.visualization === 'number',
     onEdit,
     onReconnect
   }: {
@@ -24,6 +25,7 @@
     dataLoading: boolean;
     disabled?: boolean;
     total: number;
+    compactNumberChart?: boolean;
     onEdit: (chart: ChartConfig) => void;
     onReconnect?: () => void | Promise<void>;
   } = $props();
@@ -31,12 +33,19 @@
 
 <article
   class={cn(
-    'group h-full rounded-lg border border-border bg-card p-4 transition-[border-color,box-shadow,transform,background-color]',
+    'group rounded-lg border border-border bg-card p-4 transition-[border-color,box-shadow,transform,background-color]',
+    chart.visualization !== 'number' && 'h-full',
+    chart.visualization === 'number' && !compactNumberChart && 'md:h-full',
     'hover:border-foreground/20 hover:shadow-sm'
   )}
 >
   <div class="flex items-start justify-between gap-3">
-    <div class="flex h-10 min-w-0 items-start gap-2">
+    <div
+      class={cn(
+        'flex min-w-0 items-start gap-2',
+        chart.visualization === 'number' ? 'h-8' : 'h-10'
+      )}
+    >
       <button
         type="button"
         use:dragHandle

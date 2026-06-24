@@ -179,15 +179,28 @@
     result.status === 'series' ? (result.excluded?.map((item) => item.label).join(', ') ?? '') : ''
   );
   const summaryId = $derived(`chart-summary-${chart.id}`);
+  const isNumberChart = $derived(chart.visualization === 'number' || result.status === 'number');
   const chartHeightClass = $derived(
-    size === 'builder' ? 'min-h-[56vh] lg:min-h-[560px]' : 'min-h-[240px]'
+    isNumberChart
+      ? size === 'builder'
+        ? 'min-h-[160px]'
+        : 'min-h-[120px]'
+      : size === 'builder'
+        ? 'min-h-[56vh] lg:min-h-[560px]'
+        : 'min-h-[240px]'
   );
   const aspectClass = $derived(
-    chart.size === 'medium'
-      ? 'aspect-[16/5]'
-      : chart.size === 'small'
-        ? 'aspect-[16/10]'
-        : 'aspect-[16/8]'
+    isNumberChart
+      ? chart.size === 'medium'
+        ? 'aspect-[32/5]'
+        : chart.size === 'small'
+          ? 'aspect-[16/5]'
+          : 'aspect-[16/4]'
+      : chart.size === 'medium'
+        ? 'aspect-[16/5]'
+        : chart.size === 'small'
+          ? 'aspect-[16/10]'
+          : 'aspect-[16/8]'
   );
   const placeholderHeightClass = $derived(cn(aspectClass, 'w-full', chartHeightClass));
   const chartAriaLabel = $derived.by(() => {
@@ -257,9 +270,9 @@
   };
 </script>
 
-<div class={cn('mt-5 min-h-48 overflow-hidden', className)}>
+<div class={cn('mt-5 overflow-hidden', isNumberChart ? 'min-h-24' : 'min-h-48', className)}>
   {#if result.status === 'number'}
-    <div class={cn('flex items-center rounded-md bg-card p-5', placeholderHeightClass)}>
+    <div class={cn('flex items-center rounded-md bg-card px-5 pt-4 pb-8', placeholderHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground">{chart.title}</p>
         <p class="mt-2 text-4xl font-semibold break-words">
@@ -441,7 +454,7 @@
       </div>
     </div>
   {:else if chart.visualization === 'number'}
-    <div class={cn('flex items-center rounded-md bg-card p-5', placeholderHeightClass)}>
+    <div class={cn('flex items-center rounded-md bg-card px-5 pt-4 pb-8', placeholderHeightClass)}>
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground">{result.message}</p>
         <p class="mt-2 text-4xl font-semibold">--</p>
