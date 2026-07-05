@@ -38,7 +38,7 @@
         class="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground"
       >
         <ShieldCheck size={16} />
-        Third-party, read-only, browser-local
+        Privacy First
       </div>
       <h1
         class="max-w-4xl text-5xl leading-[1.02] font-semibold tracking-normal text-foreground md:text-7xl"
@@ -51,21 +51,11 @@
         layout only in this browser.
       </p>
       <div class="mt-8 flex flex-wrap gap-3">
-        <Button
-          variant="primary"
-          class="px-5 py-3"
-          onclick={connect}
-        >
+        <Button variant="primary" class="px-5 py-3" onclick={connect}>
           <LockKeyhole size={18} />
           Connect YNAB
         </Button>
-        <Button
-          variant="secondary"
-          class="px-5 py-3"
-          href={resolve('/privacy')}
-        >
-          Privacy
-        </Button>
+        <Button variant="secondary" class="px-5 py-3" href={resolve('/privacy')}>Privacy</Button>
       </div>
       {#if error}
         <p
