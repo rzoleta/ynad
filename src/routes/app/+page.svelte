@@ -30,6 +30,7 @@
   import ChartCard from '$lib/components/dashboard/chart-card.svelte';
   import DashboardToolbar from '$lib/components/dashboard/dashboard-toolbar.svelte';
   import EmptyDashboard from '$lib/components/dashboard/empty-dashboard.svelte';
+  import LoadingDashboard from '$lib/components/dashboard/loading-dashboard.svelte';
   import YnabConnectPanel from '$lib/components/dashboard/ynab-connect-panel.svelte';
   import YnabErrorBanner from '$lib/components/dashboard/ynab-error-banner.svelte';
   import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
@@ -85,6 +86,9 @@
   const isRefreshing = $derived(budgetSelectionQuery.isFetching || snapshotQuery.isFetching);
   const dashboardError = $derived(snapshotQuery.error ?? budgetSelectionQuery.error ?? null);
   const isSnapshotLoading = $derived(Boolean(isRefreshing));
+  const showInitialYnabLoading = $derived(
+    connectionStatus === 'connected' && charts.length === 0 && isSnapshotLoading && !dashboardError
+  );
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
   const dragDisabled = $derived(isSnapshotLoading || charts.length < 2);
   const isEditingExistingChart = $derived(
@@ -349,7 +353,9 @@
       />
     {/if}
 
-    {#if charts.length === 0}
+    {#if showInitialYnabLoading}
+      <LoadingDashboard />
+    {:else if charts.length === 0}
       <EmptyDashboard onAddChart={openNew} disabled={isSnapshotLoading} />
     {:else}
       <div
