@@ -1,23 +1,28 @@
-# YNAD
+# YNAD (You Need A Dashboard)
 
-You Need A Dashboard is a browser-local dashboard builder for YNAB users.
+[https://ynad.app/app](https://ynad.app/app)
+
+YNAD is a free and open-source web app for building beautiful dashboards for your YNAB personal finance data.
+
+Build charts showing *Net Worth*, *Account Balances*, *Spending*, *Income*, etc.
 
 YNAD is an independent third-party app. It is not affiliated with, endorsed by, or sponsored by
 YNAB.
 
-## Product Behavior
+## Privacy
 
-- YNAD requests read-only YNAB API access.
-- It fetches YNAB financial data live and keeps that data in memory through the current app session.
-- It stores the OAuth access token, selected budget ID, settings, and dashboard chart configuration
-  in the browser.
-- It does not run a backend database, create YNAD user accounts, or persist YNAB budget data on a
-  YNAD server.
-- The current OAuth flow stores an expiring browser-local access token. When the token expires, use
-  Reconnect YNAB.
-- Use Disconnect YNAB to remove the browser-local YNAB connection for the current browser.
+YNAD is 100% private and local-only. The hosted web app does *NOT* store any user's data on remote servers.
+
+Initially it will perform a big fetch of user's full transaction history, and then store this on-device in the browser.
+
+As a result, this does mean users will need to manually re-authenticate from time to time due to the use of an Implicit Grant Flow type in the OAuth flow (since we do not persist your access tokens).
+
+Check the YNAB docs at: [https://api.ynab.com/#oauth-applications](https://api.ynab.com/#oauth-applications)
+
 
 ## Development
+
+If you wish to host or run the web app yourself.
 
 Install dependencies:
 
@@ -55,13 +60,3 @@ Build the app:
 ```sh
 pnpm build
 ```
-
-## Manual Verification
-
-1. Connect YNAB from the landing page and confirm `/app` loads.
-2. Add spending, income, balance, and number charts.
-3. Edit chart filters, date ranges, visualization, size, and title, then save.
-4. Toggle edit mode and verify duplicate, delete, resize, drag reorder on desktop, and move up/down
-   on mobile.
-5. Visit Settings, change week start, switch budget, reconnect, and use Disconnect YNAB.
-6. Visit Privacy and Terms to confirm the read-only, third-party, browser-local copy.
