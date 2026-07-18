@@ -1,7 +1,7 @@
 <script lang="ts">
   import { scaleBand, scaleOrdinal } from 'd3-scale';
   import { curveMonotoneX } from 'd3-shape';
-  import { AreaChart, BarChart, PieChart } from 'layerchart';
+  import { AreaChart, Bar, BarChart, PieChart, type ChartState } from 'layerchart';
   import { CircleDollarSign, LoaderCircle } from '@lucide/svelte';
   import * as Chart from '$lib/components/ui/chart';
   import type { ChartConfig as AppChartConfig, ChartType } from '$lib/app/chart-config';
@@ -11,6 +11,17 @@
   import type { CurrencyFormat } from '$lib/domain/types';
   import { cn } from '$lib/utils';
   import { Button } from '$lib/components/ui/button/index.js';
+  import BreakdownBarTooltip from './breakdown-bar-tooltip.svelte';
+
+  type BreakdownBarDatum = Record<string, string | number> & {
+    bucketId: string;
+    label: string;
+  };
+
+  type BreakdownBarHighlight = {
+    bucketId: string;
+    groupKey: string;
+  };
 
   let {
     result,
@@ -34,6 +45,7 @@
 
   let chartContainerRef = $state<HTMLDivElement | null>(null);
   let chartHeight = $state(400);
+  let highlightedBreakdownSegment = $state<BreakdownBarHighlight | null>(null);
 
   $effect(() => {
     if (!chartContainerRef) return;
@@ -91,7 +103,7 @@
     if (!hasBreakdown || !breakdown) return null;
 
     return breakdown.breakdownPoints.map((point) => {
-      const row: Record<string, string | number> = { label: point.label };
+      const row: BreakdownBarDatum = { bucketId: point.bucketId, label: point.label };
       for (const group of breakdown.groups) {
         row[group.key] = point.values[group.key] ?? 0;
       }
@@ -244,6 +256,17 @@
     return formatMilliunits(value, displayCurrency);
   }
 
+  function setBreakdownBarHighlight(highlight: BreakdownBarHighlight | null) {
+    if (
+      highlightedBreakdownSegment?.bucketId === highlight?.bucketId &&
+      highlightedBreakdownSegment?.groupKey === highlight?.groupKey
+    ) {
+      return;
+    }
+
+    highlightedBreakdownSegment = highlight;
+  }
+
   function formatXTick(value: unknown) {
     const label = String(value);
 
@@ -269,6 +292,35 @@
     } as const
   };
 </script>
+
+{#snippet breakdownBarTooltip({ context }: { context: ChartState<BreakdownBarDatum> })}
+  <BreakdownBarTooltip
+    {context}
+    formatValue={formatTooltipValue}
+    onHighlightChange={setBreakdownBarHighlight}
+  />
+{/snippet}
+
+{#snippet breakdownBarMarks({ context }: { context: ChartState<BreakdownBarDatum> })}
+  {#each context.series.visibleSeries as series, seriesIndex (series.key)}
+    {#each breakdownData ?? [] as datum (datum.bucketId)}
+      <Bar
+        data={datum}
+        seriesKey={series.key}
+        fill={series.color}
+        radius={4}
+        rounded={seriesIndex === context.series.visibleSeries.length - 1 ? 'edge' : 'none'}
+        strokeWidth={1}
+        class={cn(
+          'transition-[filter] duration-150',
+          highlightedBreakdownSegment?.groupKey === series.key &&
+            highlightedBreakdownSegment?.bucketId === datum.bucketId &&
+            'brightness-125 saturate-150'
+        )}
+      />
+    {/each}
+  {/each}
+{/snippet}
 
 <div class={cn('mt-5 overflow-hidden', isNumberChart ? 'min-h-24' : 'min-h-48', className)}>
   {#if result.status === 'number'}
@@ -379,6 +431,8 @@
               {yDomain}
               series={breakdownSeries}
               seriesLayout="stack"
+              marks={type === 'spending' || type === 'income' ? breakdownBarMarks : undefined}
+              tooltip={type === 'spending' || type === 'income' ? breakdownBarTooltip : undefined}
               props={{
                 tooltip: {
                   item: { format: formatTooltipValue },
