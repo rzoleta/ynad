@@ -55,7 +55,7 @@
 
   const dashboardSubtitle = $derived(
     connectionStatus === 'connected'
-      ? 'Live dashboard'
+      ? 'You Need A Dashboard for YNAB'
       : connectionStatus === 'expired'
         ? 'Reconnect YNAB to refresh'
         : 'Connect YNAB to start'
