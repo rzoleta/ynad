@@ -17,6 +17,7 @@ import type {
   PieSlicePoint,
   TimeSeriesPoint
 } from './types';
+import { selectBreakdownGroups } from './breakdown';
 import { aggregatePieSlices } from './pie';
 import { emptyChartResult } from './types';
 
@@ -171,16 +172,20 @@ function computeBalanceBreakdown(
   const buckets = makeTimeBuckets(range, granularity, weekStart);
   const transactionLookup = transactionsByAccount(snapshot.transactions);
 
-  const lastBucketDate = buckets[buckets.length - 1].to;
-  const sortedAccounts = [...accounts].sort((a, b) => {
-    const balanceA = getAccountBalanceAtDate(a, transactionLookup, lastBucketDate);
-    const balanceB = getAccountBalanceAtDate(b, transactionLookup, lastBucketDate);
-    return balanceB - balanceA;
-  });
-
-  const MAX_BREAKDOWN_GROUPS = 5;
-  const topAccounts = sortedAccounts.slice(0, MAX_BREAKDOWN_GROUPS);
-  const overflowAccounts = sortedAccounts.slice(MAX_BREAKDOWN_GROUPS);
+  const accountContributions = new Map(
+    accounts.map((account) => [
+      account.id,
+      buckets.reduce(
+        (total, bucket) =>
+          total + Math.abs(getAccountBalanceAtDate(account, transactionLookup, bucket.to)),
+        0
+      ) / buckets.length
+    ])
+  );
+  const { primary: topAccounts, overflow: overflowAccounts } = selectBreakdownGroups(
+    accounts,
+    (account) => accountContributions.get(account.id) ?? 0
+  );
   const hasOverflow = overflowAccounts.length > 0;
 
   const groups: BreakdownGroup[] = topAccounts.map((account) => ({

@@ -25,6 +25,9 @@
   --chart-3: #f4a62a;
   --chart-4: #7665d8;
   --chart-5: #d94f45;
+  --chart-6: #20a7a0;
+  --chart-7: #d86db1;
+  --chart-8: #8a7356;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
   --secondary: var(--muted);
@@ -62,6 +65,9 @@
   --chart-3: #ffc65a;
   --chart-4: #9d8cff;
   --chart-5: #ff746b;
+  --chart-6: #39c5bd;
+  --chart-7: #f08dca;
+  --chart-8: #b89a73;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
   --secondary: var(--muted);
@@ -101,6 +107,9 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-chart-8: var(--chart-8);
+  --color-chart-7: var(--chart-7);
+  --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);

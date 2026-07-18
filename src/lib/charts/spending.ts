@@ -19,6 +19,7 @@ import type {
   PieSlicePoint,
   TimeSeriesPoint
 } from './types';
+import { selectBreakdownGroups } from './breakdown';
 import { emptyChartResult } from './types';
 
 export type SpendingSeriesData = {
@@ -209,21 +210,23 @@ function computeSpendingBreakdown(
 
   if (groupMap.size === 0) return undefined;
 
-  const groupTotals = new Map<string, Milliunits>();
+  const groupContributions = new Map<string, Milliunits>();
   for (const [key, groupEntries] of entriesByGroup) {
-    groupTotals.set(
+    groupContributions.set(
       key,
-      groupEntries.reduce((total, entry) => total - entry.amountMilliunits, 0)
+      buckets.reduce((contribution, bucket) => {
+        const bucketTotal = groupEntries
+          .filter((entry) => entry.date >= bucket.from && entry.date <= bucket.to)
+          .reduce((total, entry) => total - entry.amountMilliunits, 0);
+        return contribution + Math.abs(bucketTotal);
+      }, 0)
     );
   }
 
-  const sortedGroups = [...groupMap.values()].sort(
-    (a, b) => (groupTotals.get(b.key) ?? 0) - (groupTotals.get(a.key) ?? 0)
+  const { primary: topGroups, overflow: overflowGroups } = selectBreakdownGroups(
+    [...groupMap.values()],
+    (group) => groupContributions.get(group.key) ?? 0
   );
-
-  const MAX_BREAKDOWN_GROUPS = 5;
-  const topGroups = sortedGroups.slice(0, MAX_BREAKDOWN_GROUPS);
-  const overflowGroups = sortedGroups.slice(MAX_BREAKDOWN_GROUPS);
   const hasOverflow = overflowGroups.length > 0;
 
   const groups = hasOverflow ? [...topGroups, { key: '__others__', label: 'Others' }] : topGroups;
