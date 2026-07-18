@@ -2,11 +2,11 @@ import colors from 'tailwindcss/colors';
 
 const CHART_COLOR_NAMES = [
   'blue',
-  'red',
   'green',
+  'rose',
   'indigo',
   'amber',
-  'pink',
+  'fuchsia',
   'teal',
   'yellow',
   'slate'
@@ -14,7 +14,7 @@ const CHART_COLOR_NAMES = [
 
 const CHART_COLOR_SHADES = {
   light: '400',
-  dark: '900'
+  dark: '800'
 } as const;
 
 const UNGROUPED_CHART_COLOR_COUNT = 5;
