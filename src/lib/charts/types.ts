@@ -72,19 +72,6 @@ export type ChartResult =
   | ChartSeriesResult
   | ChartNumberResult;
 
-const CHART_COLOR_COUNT = 5;
-
-export function chartColorForKey(key: string): string {
-  let hash = 0;
-
-  for (let index = 0; index < key.length; index += 1) {
-    hash = (hash * 31 + key.charCodeAt(index)) | 0;
-  }
-
-  const colorIndex = Math.abs(hash) % CHART_COLOR_COUNT;
-  return `var(--chart-${colorIndex + 1})`;
-}
-
 export function emptyChartResult(message = 'No matching data for this chart.'): ChartEmptyResult {
   return { status: 'empty', message };
 }

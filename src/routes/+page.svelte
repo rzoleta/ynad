@@ -3,10 +3,12 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { BarChart3, LockKeyhole, PanelsTopLeft, ShieldCheck } from '@lucide/svelte';
+  import { chartColorForRank } from '$lib/charts/colors';
   import { startYnabOAuth, readToken } from '$lib/ynab/auth';
   import { Button } from '$lib/components/ui/button/index.js';
 
   let error = $state('');
+  const sampleChartColor = chartColorForRank(2);
 
   $effect(() => {
     if (browser && readToken()) void goto(resolve('/app'));
@@ -106,7 +108,7 @@
               <path
                 d="M4 96 C 66 82, 86 64, 132 72 S 214 91, 258 58 S 326 18, 376 42 S 460 70, 516 24"
                 fill="none"
-                stroke="var(--chart-2)"
+                stroke={sampleChartColor}
                 stroke-width="6"
                 stroke-linecap="round"
               />

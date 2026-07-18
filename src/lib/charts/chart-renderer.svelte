@@ -6,7 +6,8 @@
   import * as Chart from '$lib/components/ui/chart';
   import type { ChartConfig as AppChartConfig, ChartType } from '$lib/app/chart-config';
   import { OTHER_PIE_SLICE_KEY } from '$lib/charts/pie';
-  import { chartColorForKey, type ChartBreakdownData, type ChartResult } from '$lib/charts/types';
+  import { chartColorForKey, chartColorForRank } from '$lib/charts/colors';
+  import type { ChartBreakdownData, ChartResult } from '$lib/charts/types';
   import { formatMilliunits, normalizeCurrencyFormat } from '$lib/domain/currency';
   import type { CurrencyFormat } from '$lib/domain/types';
   import { cn } from '$lib/utils';
@@ -95,7 +96,7 @@
         value: Math.abs(point.valueMilliunits),
         fill:
           'key' in point && point.key === OTHER_PIE_SLICE_KEY
-            ? 'var(--muted-foreground)'
+            ? chartColorForRank(9)
             : chartColorForKey('key' in point ? point.key : point.bucketId)
       }));
     }
@@ -129,7 +130,7 @@
       key: group.key,
       label: group.label,
       value: (d: Record<string, unknown>) => (d[group.key] as number) ?? 0,
-      color: group.key === '__others__' ? 'var(--muted-foreground)' : `var(--chart-${index + 1})`
+      color: chartColorForRank(group.key === '__others__' ? 9 : index + 1)
     }));
   });
 
@@ -148,8 +149,7 @@
       return breakdown.groups.reduce<Chart.ChartConfig>((next, group, index) => {
         next[group.key] = {
           label: group.label,
-          color:
-            group.key === '__others__' ? 'var(--muted-foreground)' : `var(--chart-${index + 1})`
+          color: chartColorForRank(group.key === '__others__' ? 9 : index + 1)
         };
         return next;
       }, {});
