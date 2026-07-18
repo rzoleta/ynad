@@ -23,6 +23,13 @@
     groupKey: string;
   };
 
+  type BarDatum = {
+    key: string;
+    label: string;
+    value: number;
+    fill: string;
+  };
+
   let {
     result,
     chart,
@@ -46,6 +53,8 @@
   let chartContainerRef = $state<HTMLDivElement | null>(null);
   let chartHeight = $state(400);
   let highlightedBreakdownSegment = $state<BreakdownBarHighlight | null>(null);
+  let ungroupedBarContext = $state<ChartState<BarDatum>>();
+  let highlightedBarKey = $state<string | null>(null);
 
   $effect(() => {
     if (!chartContainerRef) return;
@@ -98,6 +107,8 @@
       fill: seriesColor
     }));
   });
+
+  const barData = $derived(points as BarDatum[]);
 
   const breakdownData = $derived.by(() => {
     if (!hasBreakdown || !breakdown) return null;
@@ -256,6 +267,27 @@
     return formatMilliunits(value, displayCurrency);
   }
 
+  $effect(() => {
+    const context = ungroupedBarContext;
+    const data = context?.tooltip.data;
+    if (visual !== 'bar' || hasBreakdown || !context || !data) {
+      highlightedBarKey = null;
+      return;
+    }
+
+    const pointerY = context.tooltip.y - context.padding.top;
+    const baselineY = context.yScale(0);
+    const valueY = context.yScale(data.value);
+
+    highlightedBarKey =
+      typeof baselineY === 'number' &&
+      typeof valueY === 'number' &&
+      pointerY >= Math.min(baselineY, valueY) &&
+      pointerY <= Math.max(baselineY, valueY)
+        ? data.key
+        : null;
+  });
+
   function setBreakdownBarHighlight(highlight: BreakdownBarHighlight | null) {
     if (
       highlightedBreakdownSegment?.bucketId === highlight?.bucketId &&
@@ -299,6 +331,25 @@
     formatValue={formatTooltipValue}
     onHighlightChange={setBreakdownBarHighlight}
   />
+{/snippet}
+
+{#snippet barMarks({ context }: { context: ChartState<BarDatum> })}
+  {#each context.series.visibleSeries as series (series.key)}
+    {#each barData as datum (datum.key)}
+      <Bar
+        data={datum}
+        seriesKey={series.key}
+        fill={series.color ?? datum.fill}
+        radius={4}
+        rounded="edge"
+        strokeWidth={1}
+        class={cn(
+          'transition-[filter] duration-150',
+          highlightedBarKey === datum.key && 'brightness-150'
+        )}
+      />
+    {/each}
+  {/each}
 {/snippet}
 
 {#snippet breakdownBarMarks({ context }: { context: ChartState<BreakdownBarDatum> })}
@@ -444,7 +495,8 @@
             />
           {:else}
             <BarChart
-              data={points}
+              bind:context={ungroupedBarContext}
+              data={barData}
               x="label"
               y="value"
               axis={true}
@@ -452,6 +504,7 @@
               xScale={scaleBand().padding(0.32)}
               {yDomain}
               series={[{ key: 'value', label: chart.title, color: seriesColor }]}
+              marks={barMarks}
               props={{
                 tooltip: {
                   item: { format: formatTooltipValue },
