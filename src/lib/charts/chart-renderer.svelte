@@ -315,7 +315,7 @@
           'transition-[filter] duration-150',
           highlightedBreakdownSegment?.groupKey === series.key &&
             highlightedBreakdownSegment?.bucketId === datum.bucketId &&
-            'brightness-125 saturate-150'
+            'brightness-150'
         )}
       />
     {/each}
