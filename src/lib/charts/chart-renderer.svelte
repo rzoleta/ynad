@@ -195,12 +195,12 @@
         ? 'aspect-[32/5]'
         : chart.size === 'small'
           ? 'aspect-[16/5]'
-          : 'aspect-[16/4]'
+          : 'aspect-[48/5]'
       : chart.size === 'medium'
         ? 'aspect-[16/5]'
         : chart.size === 'small'
           ? 'aspect-[16/10]'
-          : 'aspect-[16/8]'
+          : 'aspect-[24/5]'
   );
   const placeholderHeightClass = $derived(cn(aspectClass, 'w-full', chartHeightClass));
   const chartAriaLabel = $derived.by(() => {
