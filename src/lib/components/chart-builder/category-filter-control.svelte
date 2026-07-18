@@ -120,7 +120,7 @@
       <Select.Trigger class="w-full">
         {triggerLabel}
       </Select.Trigger>
-      <Select.Content class="max-h-100 overflow-y-auto">
+      <Select.Content>
         <div class="sticky top-0 z-10 border-b border-border bg-popover px-2 py-1.5">
           <div class="relative">
             <Search
