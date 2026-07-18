@@ -391,8 +391,8 @@ export function getBreakdownOptions(
     if (visualization === 'pie') {
       return [
         { value: 'account', label: 'Account' },
-        { value: 'category', label: 'Category' },
         { value: 'category-group', label: 'Category Group' },
+        { value: 'category', label: 'Category' },
         { value: 'payee', label: 'Payee' }
       ];
     }
@@ -400,8 +400,8 @@ export function getBreakdownOptions(
     return [
       { value: 'none', label: 'None' },
       { value: 'account', label: 'Account' },
-      { value: 'category', label: 'Category' },
       { value: 'category-group', label: 'Category Group' },
+      { value: 'category', label: 'Category' },
       { value: 'payee', label: 'Payee' }
     ];
   }
