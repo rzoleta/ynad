@@ -47,16 +47,3 @@ Start the dev server:
 ```sh
 pnpm dev
 ```
-
-Run project checks:
-
-```sh
-pnpm check
-pnpm lint
-```
-
-Build the app:
-
-```sh
-pnpm build
-```
