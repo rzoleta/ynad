@@ -24,6 +24,10 @@ export function isCashAccount(account: AccountEntity): boolean {
   return account.accountClass === 'cash';
 }
 
+export function isCreditAccount(account: AccountEntity): boolean {
+  return account.accountClass === 'credit';
+}
+
 export function isTrackingAccount(account: AccountEntity): boolean {
   return account.accountClass === 'tracking';
 }
@@ -38,5 +42,7 @@ export function defaultAccountsForChart(
 ): AccountEntity[] {
   if (type === 'balance') return accounts;
 
-  return accounts.filter((account) => account.onBudget && isCashAccount(account));
+  return accounts.filter(
+    (account) => account.onBudget && (isCashAccount(account) || isCreditAccount(account))
+  );
 }

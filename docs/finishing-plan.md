@@ -259,6 +259,7 @@ Implement in `src/lib/domain/accounts.ts`.
 ```ts
 export function getAccountClass(accountType: string): AccountClass;
 export function isCashAccount(account: AccountEntity): boolean;
+export function isCreditAccount(account: AccountEntity): boolean;
 export function isTrackingAccount(account: AccountEntity): boolean;
 export function isActiveAccount(account: AccountEntity): boolean;
 export function defaultAccountsForChart(
@@ -278,8 +279,8 @@ Initial classification:
 Chart defaults:
 
 - Balance `all`: all non-deleted accounts, including closed accounts.
-- Spending `all`: on-budget cash accounts by default. Tracking accounts can be included only through selected account filters.
-- Income `all`: on-budget cash accounts by default unless selected account filters override.
+- Spending `all`: on-budget cash and credit accounts by default. Tracking accounts can be included only through selected account filters.
+- Income `all`: on-budget cash and credit accounts by default unless selected account filters override.
 
 ### Date Utilities
 
@@ -825,7 +826,7 @@ Implement in `src/lib/charts/spending.ts`.
 Rules:
 
 - Filters: accounts, categories, payees, date range, granularity.
-- Default `all` accounts means on-budget cash accounts.
+- Default `all` accounts means on-budget cash and credit accounts.
 - Internal transfers and credit card payments are excluded.
 - Normal outflows display as positive spending.
 - Categorized inflows such as refunds/reimbursements reduce spending.
