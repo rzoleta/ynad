@@ -1,115 +1,100 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { BarChart3, LockKeyhole, PanelsTopLeft, ShieldCheck } from '@lucide/svelte';
-  import { chartColorForRank } from '$lib/charts/colors';
-  import { startYnabOAuth } from '$lib/ynab/auth';
-  import { Button } from '$lib/components/ui/button/index.js';
-
-  let error = $state('');
-  const sampleChartColor = chartColorForRank(2);
-
-  async function connect() {
-    try {
-      await startYnabOAuth();
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Unable to start YNAB OAuth.';
-    }
-  }
+  import { LockKeyhole } from '@lucide/svelte';
+  import GithubIcon from '$lib/landing/github-icon.svelte';
+  import SampleChart from '$lib/landing/sample-chart.svelte';
+  import SignInButton from '$lib/landing/sign-in-button.svelte';
+  import ThemeToggle from '$lib/landing/theme-toggle.svelte';
+  import {
+    GITHUB_URL,
+    categoryPieChart,
+    netWorthChart,
+    spendingChart
+  } from '$lib/landing/sample-data';
 </script>
 
 <svelte:head>
-  <title>YNAD · You Need A Dashboard</title>
+  <title>YNAD · You Need a Dashboard for YNAB</title>
   <meta
     name="description"
-    content="A private, browser-local dashboard builder for visualizing YNAB budgets."
+    content="A private dashboard builder for YNAB. Everything stays in your browser — no accounts, no servers, no tracking."
   />
 </svelte:head>
 
-<main class="min-h-screen bg-background">
-  <section
-    class="mx-auto grid min-h-[92vh] max-w-7xl items-center gap-10 px-5 py-10 lg:grid-cols-[1fr_520px]"
-  >
-    <div class="max-w-3xl">
-      <div
-        class="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground"
-      >
-        <ShieldCheck size={16} />
-        Privacy First
-      </div>
-      <h1
-        class="max-w-4xl text-5xl leading-[1.02] font-semibold tracking-normal text-foreground md:text-7xl"
-      >
-        YNAD
-      </h1>
-      <p class="mt-4 max-w-2xl text-xl leading-8 text-muted-foreground">
-        You Need A Dashboard. Build clean, personal finance dashboards from live YNAB data without
-        creating a YNAD account. YNAD stores your connection, selected budget, settings, and chart
-        layout only in this browser.
-      </p>
-      <div class="mt-8 flex flex-wrap gap-3">
-        <Button variant="primary" class="px-5 py-3" onclick={connect}>
-          <LockKeyhole size={18} />
-          Connect YNAB
-        </Button>
-        <Button variant="secondary" class="px-5 py-3" href={resolve('/privacy')}>Privacy</Button>
-      </div>
-      {#if error}
-        <p
-          class="mt-4 rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
-        >
-          {error}
-        </p>
-      {/if}
-    </div>
+<main class="relative flex min-h-svh flex-col overflow-hidden bg-background lg:h-svh">
+  <div
+    class="pointer-events-none absolute inset-x-0 top-0 h-[60vh]"
+    style="background: radial-gradient(ellipse at top, color-mix(in oklab, var(--primary) 14%, transparent), transparent 65%)"
+    aria-hidden="true"
+  ></div>
 
-    <div class="relative">
-      <div class="rounded-lg border border-border bg-card p-4 shadow-xl shadow-sky-950/10">
-        <div class="flex items-center justify-between border-b border-border pb-3">
-          <div>
-            <p class="text-sm font-semibold">Personal dashboard</p>
-            <p class="text-xs text-muted-foreground">Live YNAB data · Local chart config</p>
-          </div>
-          <PanelsTopLeft size={20} class="text-primary" />
+  <header class="relative mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+    <span class="text-lg font-semibold tracking-tight">YNAD</span>
+    <div class="flex items-center gap-4 text-sm text-muted-foreground">
+      <a class="hover:text-foreground" href={resolve('/privacy')}>Privacy Policy</a>
+      <!-- eslint-disable svelte/no-navigation-without-resolve -->
+      <a
+        class="inline-flex items-center gap-1.5 hover:text-foreground"
+        href={GITHUB_URL}
+        target="_blank"
+        rel="noreferrer"
+      >
+        <GithubIcon size={15} />
+        GitHub
+      </a>
+      <!-- eslint-enable svelte/no-navigation-without-resolve -->
+      <ThemeToggle variant="ghost" />
+    </div>
+  </header>
+
+  <section
+    class="relative mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 py-10 text-center lg:py-0"
+  >
+    <h1 class="text-5xl leading-[1.04] font-semibold tracking-tight text-foreground md:text-6xl">
+      You Need a Dashboard for YNAB
+    </h1>
+    <p class="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">
+      Turn your YNAB budget into clean, personal charts of your net worth, spending, and income —
+      built exactly the way you want.
+    </p>
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+      <SignInButton class="px-6" />
+    </div>
+    <p
+      class="mt-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground"
+      title="YNAD stores nothing on any server."
+    >
+      <LockKeyhole size={14} class="shrink-0 text-accent" />
+      Highly private — we never store your data. Everything lives securely in your browser, on your device.
+    </p>
+  </section>
+
+  <section class="relative mx-auto w-full max-w-6xl px-6 pb-8">
+    <div class="grid gap-4 md:grid-cols-3">
+      <div class="rounded-lg border border-border bg-card/70 p-4 backdrop-blur">
+        <div class="mb-1 flex items-baseline justify-between gap-2">
+          <h2 class="text-sm font-semibold">Net Worth</h2>
+          <p class="text-xs text-muted-foreground">Last 12 months</p>
         </div>
-        <div class="mt-4 grid grid-cols-3 gap-3">
-          <div class="col-span-2 rounded-md border border-border bg-background p-4">
-            <div class="mb-4 flex items-center justify-between">
-              <span class="text-sm font-medium">Monthly spending</span>
-              <BarChart3 size={16} class="text-primary" />
-            </div>
-            <div class="flex h-32 items-end gap-2">
-              {#each [42, 68, 51, 74, 63, 88] as height, index (`bar-${index}`)}
-                <div class="flex-1 rounded-t bg-primary/80" style={`height:${height}%`}></div>
-              {/each}
-            </div>
-          </div>
-          <div class="rounded-md border border-border bg-background p-4">
-            <p class="text-xs text-muted-foreground">Net worth</p>
-            <p class="mt-3 text-2xl font-semibold">$84.2k</p>
-            <p class="mt-2 text-xs text-accent">+4.8%</p>
-          </div>
-          <div class="col-span-3 rounded-md border border-border bg-background p-4">
-            <div class="mb-4 flex items-center justify-between">
-              <span class="text-sm font-medium">Balance over time</span>
-              <span class="text-xs text-muted-foreground">Last 12 months</span>
-            </div>
-            <svg
-              viewBox="0 0 520 120"
-              class="h-32 w-full"
-              role="img"
-              aria-label="Sample balance line"
-            >
-              <path
-                d="M4 96 C 66 82, 86 64, 132 72 S 214 91, 258 58 S 326 18, 376 42 S 460 70, 516 24"
-                fill="none"
-                stroke={sampleChartColor}
-                stroke-width="6"
-                stroke-linecap="round"
-              />
-            </svg>
-          </div>
+        <SampleChart spec={netWorthChart} class="h-[190px]" />
+      </div>
+      <div class="rounded-lg border border-border bg-card/70 p-4 backdrop-blur">
+        <div class="mb-1 flex items-baseline justify-between gap-2">
+          <h2 class="text-sm font-semibold">Monthly Spending</h2>
+          <p class="text-xs text-muted-foreground">Last 6 months</p>
         </div>
+        <SampleChart spec={spendingChart} class="h-[190px]" />
+      </div>
+      <div class="rounded-lg border border-border bg-card/70 p-4 backdrop-blur">
+        <div class="mb-1 flex items-baseline justify-between gap-2">
+          <h2 class="text-sm font-semibold">Spending by Category</h2>
+          <p class="text-xs text-muted-foreground">This month</p>
+        </div>
+        <SampleChart spec={categoryPieChart} class="mt-3 h-[175px]" />
       </div>
     </div>
+    <p class="mt-4 text-center text-xs text-muted-foreground">
+      Sample data — hover the charts. Yours will use your live YNAB budget.
+    </p>
   </section>
 </main>
