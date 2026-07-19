@@ -46,7 +46,7 @@
     </div>
   </header>
 
-  <div class="flex flex-1 flex-col justify-center lg:gap-12">
+  <div class="flex flex-1 flex-col justify-center lg:gap-12 lg:pb-14">
     <section
       class="relative mx-auto flex w-full max-w-3xl flex-col items-center px-6 py-10 text-center lg:py-0"
     >
