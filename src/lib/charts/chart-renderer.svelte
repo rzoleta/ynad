@@ -554,7 +554,9 @@
             ? 'YNAB connection expired'
             : 'Chart could not load'}
         </p>
-        <p class="mt-1 text-sm text-muted-foreground">{result.message}</p>
+        {#if result.code !== 'reconnect-required'}
+          <p class="mt-1 text-sm text-muted-foreground">{result.message}</p>
+        {/if}
         {#if result.code === 'reconnect-required' && onReconnect}
           <Button variant="primary" class="mt-4" onclick={onReconnect}>Reconnect to YNAB</Button>
         {/if}
