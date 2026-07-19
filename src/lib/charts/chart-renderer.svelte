@@ -407,6 +407,7 @@
                 {yDomain}
                 series={breakdownSeries}
                 seriesLayout="overlap"
+                tooltipContext={{ mode: 'band' }}
                 props={{
                   tooltip: {
                     item: { format: formatTooltipValue },
@@ -435,6 +436,7 @@
                 grid={true}
                 {yDomain}
                 series={[{ key: 'value', label: chart.title, color: seriesColor }]}
+                tooltipContext={{ mode: 'band' }}
                 props={{
                   tooltip: {
                     item: { format: formatTooltipValue },
