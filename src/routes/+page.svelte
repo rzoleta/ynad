@@ -1,18 +1,12 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
-  import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { BarChart3, LockKeyhole, PanelsTopLeft, ShieldCheck } from '@lucide/svelte';
   import { chartColorForRank } from '$lib/charts/colors';
-  import { startYnabOAuth, readToken } from '$lib/ynab/auth';
+  import { startYnabOAuth } from '$lib/ynab/auth';
   import { Button } from '$lib/components/ui/button/index.js';
 
   let error = $state('');
   const sampleChartColor = chartColorForRank(2);
-
-  $effect(() => {
-    if (browser && readToken()) void goto(resolve('/app'));
-  });
 
   async function connect() {
     try {
