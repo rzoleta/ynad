@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { scaleBand, scaleOrdinal } from 'd3-scale';
+  import { scaleBand } from 'd3-scale';
   import { curveMonotoneX } from 'd3-shape';
   import { AreaChart, Bar, BarChart, PieChart, type ChartState } from 'layerchart';
   import { CircleDollarSign, LoaderCircle } from '@lucide/svelte';
@@ -90,14 +90,14 @@
     if (result.status !== 'series') return [];
 
     if (result.visualization === 'pie') {
-      return result.points.map((point) => ({
+      return result.points.map((point, index) => ({
         ...point,
         key: 'key' in point ? point.key : point.bucketId,
         value: Math.abs(point.valueMilliunits),
         fill:
           'key' in point && point.key === OTHER_PIE_SLICE_KEY
             ? chartColorForRank(9)
-            : chartColorForKey('key' in point ? point.key : point.bucketId)
+            : chartColorForRank(index + 1)
       }));
     }
 
@@ -162,12 +162,6 @@
       }
     };
   });
-
-  const pieColorScale = $derived(
-    scaleOrdinal<string, string>()
-      .domain(points.map((point) => point.key))
-      .range(points.map((point) => point.fill))
-  );
 
   const yDomain = $derived.by<[number, number]>(() => {
     if (hasBreakdown && breakdown) {
@@ -463,8 +457,7 @@
               key="key"
               label="label"
               value="value"
-              c="key"
-              cScale={pieColorScale}
+              c="fill"
               innerRadius={0.58}
               padAngle={0.02}
               labels={{ value: 'label' }}

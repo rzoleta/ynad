@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { scaleBand, scaleOrdinal } from 'd3-scale';
+  import { scaleBand } from 'd3-scale';
   import { curveMonotoneX } from 'd3-shape';
   import { AreaChart, Bar, BarChart, PieChart, type ChartState } from 'layerchart';
   import * as Chart from '$lib/components/ui/chart';
@@ -88,14 +88,6 @@
         }))
       : []
   );
-
-  const pieColorScale = $derived(
-    spec.kind === 'pie'
-      ? scaleOrdinal<string, string>()
-          .domain(spec.slices.map((slice) => slice.key))
-          .range(spec.slices.map((slice) => slice.fill))
-      : scaleOrdinal<string, string>()
-  );
 </script>
 
 {#snippet stackedMarks({ context }: { context: ChartState<SampleStackedRow> })}
@@ -167,8 +159,7 @@
       key="key"
       label="label"
       value="value"
-      c="key"
-      cScale={pieColorScale}
+      c="fill"
       innerRadius={0.58}
       padAngle={0.02}
       labels={{ value: 'label' }}
