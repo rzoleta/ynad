@@ -157,7 +157,7 @@ export function normalizeChartForType(chart: ChartConfig): ChartConfig {
   }
 
   if (next.type === 'income') {
-    next.categories = undefined;
+    next.categories = normalizeIdFilter(next.categories);
     next.payees = normalizePayeeFilter(next.payees);
     return maybeUpdateGeneratedTitle(next);
   }

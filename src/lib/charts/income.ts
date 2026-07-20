@@ -100,6 +100,7 @@ export function getIncomeEntries(
     if (!isIsoDateInRange(entry.date, range)) return false;
     if (!isIncomeEntry(entry, snapshot)) return false;
     if (!matchesAccount(entry, chart, snapshot)) return false;
+    if (!matchesCategory(entry, chart)) return false;
     return matchesPayee(entry, chart);
   });
 }
@@ -171,6 +172,13 @@ function matchesPayee(entry: TransactionEntry, chart: ChartConfig): boolean {
   return chart.payees.payees.some((payee) =>
     payee.id ? payee.id === entry.payeeId : payee.name === entry.payeeName
   );
+}
+
+function matchesCategory(entry: TransactionEntry, chart: ChartConfig): boolean {
+  if (!chart.categories || chart.categories.mode === 'all') return true;
+
+  const categoryId = entry.categoryId ?? UNCATEGORIZED_CATEGORY_ID;
+  return chart.categories.ids.includes(categoryId);
 }
 
 function normalizeLabel(value: string | undefined): string {

@@ -20,7 +20,7 @@
 
   let query = $state('');
 
-  const enabled = $derived(chart.type === 'spending');
+  const enabled = $derived(chart.type === 'spending' || chart.type === 'income');
   const groups = $derived(groupCategories(categoryGroups, categories));
   const categoryIdsByGroup = $derived(
     new Map(groups.map((group) => [group.id, group.categories.map((category) => category.id)]))
