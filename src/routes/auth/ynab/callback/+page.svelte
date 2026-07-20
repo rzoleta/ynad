@@ -27,6 +27,7 @@
 
 <svelte:head>
   <title>Connecting YNAB · YNAD</title>
+  <meta name="robots" content="noindex, nofollow, noarchive" />
 </svelte:head>
 
 <main class="grid min-h-screen place-items-center px-5">

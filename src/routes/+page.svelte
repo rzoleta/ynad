@@ -16,8 +16,51 @@
   <title>YNAD · You Need a Dashboard for YNAB</title>
   <meta
     name="description"
-    content="A private dashboard builder for YNAB. Everything stays in your browser — no accounts, no servers, no tracking."
+    content="Build a free, private YNAB dashboard with customizable charts for net worth, spending, income, account balances, and more."
   />
+  <meta
+    name="keywords"
+    content="YNAB dashboard, YNAB charts, YNAB reports, personal finance dashboard, budget visualization, spending tracker, net worth tracker"
+  />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="YNAD" />
+  <link rel="canonical" href="https://ynad.app/" />
+
+  <meta property="og:title" content="YNAD · You Need a Dashboard for YNAB" />
+  <meta
+    property="og:description"
+    content="Build a free, private YNAB dashboard with customizable charts for net worth, spending, income, account balances, and more."
+  />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ynad.app/" />
+  <meta property="og:site_name" content="YNAD" />
+  <meta property="og:locale" content="en_US" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="YNAD · You Need a Dashboard for YNAB" />
+  <meta
+    name="twitter:description"
+    content="Build a free, private YNAB dashboard with customizable charts for net worth, spending, income, account balances, and more."
+  />
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "YNAD",
+      "alternateName": "You Need a Dashboard",
+      "url": "https://ynad.app/",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any",
+      "description": "A free, private dashboard builder for creating customizable charts from YNAB personal finance data.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "isAccessibleForFree": true
+    }
+  </script>
 </svelte:head>
 
 <main class="relative flex min-h-svh flex-col overflow-hidden bg-background lg:h-svh">

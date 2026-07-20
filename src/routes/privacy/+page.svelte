@@ -4,6 +4,12 @@
 
 <svelte:head>
   <title>Privacy · YNAD</title>
+  <meta
+    name="description"
+    content="Learn how YNAD keeps your YNAB dashboard data private and stores settings locally in your browser."
+  />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://ynad.app/privacy" />
 </svelte:head>
 
 <main class="mx-auto max-w-3xl px-5 py-16">

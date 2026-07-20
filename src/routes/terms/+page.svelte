@@ -4,6 +4,12 @@
 
 <svelte:head>
   <title>Terms · YNAD</title>
+  <meta
+    name="description"
+    content="Read the terms and disclaimer for YNAD, an independent read-only dashboard and visualization tool for YNAB."
+  />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://ynad.app/terms" />
 </svelte:head>
 
 <main class="mx-auto max-w-3xl px-5 py-16">
