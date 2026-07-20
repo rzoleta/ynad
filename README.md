@@ -1,6 +1,6 @@
 # YNAD (You Need A Dashboard)
 
-[https://ynad.app/app](https://ynad.app/app)
+[https://ynad.app](https://ynad.app)
 
 YNAD is a free and open-source web app for building beautiful dashboards for your YNAB personal finance data.
 
@@ -8,6 +8,8 @@ Build charts showing *Net Worth*, *Account Balances*, *Spending*, *Income*, etc.
 
 YNAD is an independent third-party app. It is not affiliated with, endorsed by, or sponsored by
 YNAB.
+
+<img width="1425" height="1327" alt="ynad_screenshot" src="https://github.com/user-attachments/assets/868a9ed4-a394-4edc-b786-a3441ef9ffe2" />
 
 ## Privacy
 
