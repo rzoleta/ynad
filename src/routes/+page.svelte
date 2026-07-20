@@ -95,7 +95,7 @@
         <h1
           class="text-5xl leading-[1.04] font-semibold tracking-tight text-foreground md:text-6xl lg:text-7xl"
         >
-          You Need a Dashboard for YNAB
+          You Need a <span class="text-[#1d4ed8]">Dashboard</span> for YNAB
         </h1>
         <p class="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">
           Create beautiful custom dashboards for your personal finance data.
