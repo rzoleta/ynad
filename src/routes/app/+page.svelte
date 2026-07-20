@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
+  import { track } from '@vercel/analytics';
   import { flip } from 'svelte/animate';
   import { onMount } from 'svelte';
   import {
@@ -205,6 +206,7 @@
     );
     editorOpen = false;
     editingChart = null;
+    if (!existing) track('add_chart');
   }
 
   function closeEditor() {

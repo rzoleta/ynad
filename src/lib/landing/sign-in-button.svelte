@@ -1,5 +1,6 @@
 <script lang="ts">
   import { LockKeyhole } from '@lucide/svelte';
+  import { track } from '@vercel/analytics';
   import { startYnabOAuth } from '$lib/ynab/auth';
   import { Button, type ButtonVariant } from '$lib/components/ui/button/index.js';
 
@@ -14,6 +15,8 @@
   let error = $state('');
 
   async function connect() {
+    track('sign_in');
+
     try {
       await startYnabOAuth();
     } catch (err) {
