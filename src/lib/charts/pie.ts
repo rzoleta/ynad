@@ -32,9 +32,32 @@ export function aggregatePieSlices(points: PieSlicePoint[]): PieSlicePoint[] {
     {
       key: OTHER_PIE_SLICE_KEY,
       label: 'Others',
-      valueMilliunits: othersTotal
+      valueMilliunits: othersTotal,
+      ...mergeTooltipItems(overflow)
     }
   ];
+}
+
+function mergeTooltipItems(
+  points: PieSlicePoint[]
+): Pick<PieSlicePoint, 'tooltipItems'> | Record<string, never> {
+  const merged = new Map<string, NonNullable<PieSlicePoint['tooltipItems']>[number]>();
+
+  for (const item of points.flatMap((point) => point.tooltipItems ?? [])) {
+    const current = merged.get(item.key);
+    if (current) current.valueMilliunits += item.valueMilliunits;
+    else merged.set(item.key, { ...item });
+  }
+
+  const tooltipItems = [...merged.values()]
+    .filter((item) => item.valueMilliunits !== 0)
+    .sort(
+      (left, right) =>
+        Math.abs(right.valueMilliunits) - Math.abs(left.valueMilliunits) ||
+        left.label.localeCompare(right.label)
+    );
+
+  return tooltipItems.length > 0 ? { tooltipItems } : {};
 }
 
 function sortPieSlices(left: PieSlicePoint, right: PieSlicePoint): number {

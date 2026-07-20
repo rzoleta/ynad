@@ -26,11 +26,18 @@ export type PieSlicePoint = {
   key: string;
   label: string;
   valueMilliunits: Milliunits;
+  tooltipItems?: BreakdownTooltipItem[];
 };
 
 export type BreakdownGroup = {
   key: string;
   label: string;
+};
+
+export type BreakdownTooltipItem = {
+  key: string;
+  label: string;
+  valueMilliunits: Milliunits;
 };
 
 export type BreakdownTimeSeriesPoint = {
@@ -39,6 +46,7 @@ export type BreakdownTimeSeriesPoint = {
   from: ISODate;
   to: ISODate;
   values: Record<string, Milliunits>;
+  tooltipItems?: Record<string, BreakdownTooltipItem[]>;
 };
 
 export type ChartBreakdownData = {

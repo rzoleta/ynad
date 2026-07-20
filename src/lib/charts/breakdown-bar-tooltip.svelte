@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { Tooltip, type ChartState } from 'layerchart';
+  import type { BreakdownTooltipItem } from '$lib/charts/types';
 
   type BreakdownBarDatum = Record<string, string | number> & {
     bucketId: string;
@@ -19,6 +20,7 @@
     label: string;
     value: number;
     color?: string;
+    items: BreakdownTooltipItem[];
   };
 
   type TotalTooltip = {
@@ -30,10 +32,12 @@
   let {
     context,
     formatValue,
+    tooltipItems,
     onHighlightChange
   }: {
     context: ChartState<BreakdownBarDatum>;
     formatValue: (value: number) => string;
+    tooltipItems: Record<string, BreakdownTooltipItem[]>;
     onHighlightChange: (highlight: BreakdownBarHighlight | null) => void;
   } = $props();
 
@@ -87,7 +91,8 @@
         groupKey: hoveredSegment.key,
         label: hoveredSegment.label,
         value: hoveredSegment.value,
-        color: hoveredSegment.color
+        color: hoveredSegment.color,
+        items: tooltipItems[`${data.bucketId}:${hoveredSegment.key}`] ?? []
       };
     }
 
@@ -122,8 +127,19 @@
         label={activeTooltip.label}
         value={formatValue(activeTooltip.value)}
         color={activeTooltip.kind === 'segment' ? activeTooltip.color : undefined}
+        classes={{ label: 'font-medium', value: 'font-medium' }}
         valueAlign="right"
       />
+      {#if activeTooltip.kind === 'segment' && activeTooltip.items.length > 0}
+        <div
+          class="col-span-2 mt-1 grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 border-t border-border pt-2 text-muted-foreground"
+        >
+          {#each activeTooltip.items as item (item.key)}
+            <span class="pl-2 whitespace-nowrap">{item.label}</span>
+            <span class="text-right">{formatValue(item.valueMilliunits)}</span>
+          {/each}
+        </div>
+      {/if}
     </Tooltip.List>
   </Tooltip.Root>
 {/if}

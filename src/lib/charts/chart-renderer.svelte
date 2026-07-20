@@ -7,12 +7,13 @@
   import type { ChartConfig as AppChartConfig, ChartType } from '$lib/app/chart-config';
   import { OTHER_PIE_SLICE_KEY } from '$lib/charts/pie';
   import { chartColorForKey, chartColorForRank } from '$lib/charts/colors';
-  import type { ChartBreakdownData, ChartResult } from '$lib/charts/types';
+  import type { BreakdownTooltipItem, ChartBreakdownData, ChartResult } from '$lib/charts/types';
   import { formatMilliunits, normalizeCurrencyFormat } from '$lib/domain/currency';
   import type { CurrencyFormat } from '$lib/domain/types';
   import { cn } from '$lib/utils';
   import { Button } from '$lib/components/ui/button/index.js';
   import BreakdownBarTooltip from './breakdown-bar-tooltip.svelte';
+  import CategoryGroupPieTooltip from './category-group-pie-tooltip.svelte';
 
   type BreakdownBarDatum = Record<string, string | number> & {
     bucketId: string;
@@ -29,6 +30,10 @@
     label: string;
     value: number;
     fill: string;
+  };
+
+  type PieDatum = BarDatum & {
+    tooltipItems?: BreakdownTooltipItem[];
   };
 
   let {
@@ -110,6 +115,7 @@
   });
 
   const barData = $derived(points as BarDatum[]);
+  const pieData = $derived(points as PieDatum[]);
 
   const breakdownData = $derived.by(() => {
     if (!hasBreakdown || !breakdown) return null;
@@ -132,6 +138,18 @@
       value: (d: Record<string, unknown>) => (d[group.key] as number) ?? 0,
       color: chartColorForRank(group.key === '__others__' ? 9 : index + 1)
     }));
+  });
+
+  const breakdownTooltipItems = $derived.by(() => {
+    if (breakdown?.dimension !== 'category-group') return {};
+
+    const items: Record<string, BreakdownTooltipItem[]> = {};
+    for (const point of breakdown.breakdownPoints) {
+      for (const [groupKey, groupItems] of Object.entries(point.tooltipItems ?? {})) {
+        items[`${point.bucketId}:${groupKey}`] = groupItems;
+      }
+    }
+    return items;
   });
 
   const config = $derived.by<Chart.ChartConfig>(() => {
@@ -323,8 +341,13 @@
   <BreakdownBarTooltip
     {context}
     formatValue={formatTooltipValue}
+    tooltipItems={breakdownTooltipItems}
     onHighlightChange={setBreakdownBarHighlight}
   />
+{/snippet}
+
+{#snippet categoryGroupPieTooltip({ context }: { context: ChartState<PieDatum> })}
+  <CategoryGroupPieTooltip {context} formatValue={formatTooltipValue} />
 {/snippet}
 
 {#snippet barMarks({ context }: { context: ChartState<BarDatum> })}
@@ -453,7 +476,7 @@
             {/if}
           {:else if visual === 'pie'}
             <PieChart
-              data={points}
+              data={pieData}
               key="key"
               label="label"
               value="value"
@@ -461,6 +484,7 @@
               innerRadius={0.58}
               padAngle={0.02}
               labels={{ value: 'label' }}
+              tooltip={chart.breakdown === 'category-group' ? categoryGroupPieTooltip : undefined}
               props={{ tooltip: { item: { format: formatTooltipValue } } }}
             />
           {:else if hasBreakdown && breakdownData && breakdownSeries.length > 0}

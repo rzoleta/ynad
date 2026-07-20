@@ -19,7 +19,7 @@ import type {
   PieSlicePoint,
   TimeSeriesPoint
 } from './types';
-import { selectBreakdownGroups } from './breakdown';
+import { getCategoryTooltipItems, selectBreakdownGroups } from './breakdown';
 import { emptyChartResult } from './types';
 
 export type SpendingSeriesData = {
@@ -127,11 +127,18 @@ function getSpendingPieSlices(
   excluded: NonNullable<Extract<ChartResult, { status: 'series' }>['excluded']>;
 } {
   const byGroup = new Map<string, PieSlicePoint>();
+  const entriesByGroup = new Map<string, TransactionEntry[]>();
 
   for (const entry of entries) {
     const { key, label } = getSpendingBreakdownGroup(entry, dimension, snapshot);
     const valueMilliunits = -entry.amountMilliunits;
     const current = byGroup.get(key);
+
+    if (dimension === 'category-group') {
+      const groupEntries = entriesByGroup.get(key) ?? [];
+      groupEntries.push(entry);
+      entriesByGroup.set(key, groupEntries);
+    }
 
     if (current) {
       current.valueMilliunits += valueMilliunits;
@@ -142,17 +149,30 @@ function getSpendingPieSlices(
   }
 
   const excluded: NonNullable<Extract<ChartResult, { status: 'series' }>['excluded']> = [];
-  const points = [...byGroup.values()].filter((point) => {
-    if (point.valueMilliunits > 0) return true;
+  const points = [...byGroup.values()]
+    .map((point) =>
+      dimension === 'category-group'
+        ? {
+            ...point,
+            tooltipItems: getCategoryTooltipItems(
+              entriesByGroup.get(point.key) ?? [],
+              snapshot.categoryById,
+              (entry) => -entry.amountMilliunits
+            )
+          }
+        : point
+    )
+    .filter((point) => {
+      if (point.valueMilliunits > 0) return true;
 
-    excluded.push({
-      key: point.key,
-      label: point.label,
-      valueMilliunits: point.valueMilliunits,
-      reason: 'non-positive-pie-slice'
+      excluded.push({
+        key: point.key,
+        label: point.label,
+        valueMilliunits: point.valueMilliunits,
+        reason: 'non-positive-pie-slice'
+      });
+      return false;
     });
-    return false;
-  });
 
   return { points: aggregatePieSlices(points), excluded };
 }
@@ -233,23 +253,40 @@ function computeSpendingBreakdown(
 
   const breakdownPoints: BreakdownTimeSeriesPoint[] = buckets.map((bucket) => {
     const values: Record<string, Milliunits> = {};
+    const tooltipItems: NonNullable<BreakdownTimeSeriesPoint['tooltipItems']> = {};
 
     for (const group of topGroups) {
       const groupEntries = entriesByGroup.get(group.key) ?? [];
-      values[group.key] = groupEntries
-        .filter((entry) => entry.date >= bucket.from && entry.date <= bucket.to)
-        .reduce((total, entry) => total - entry.amountMilliunits, 0);
+      const bucketEntries = groupEntries.filter(
+        (entry) => entry.date >= bucket.from && entry.date <= bucket.to
+      );
+      values[group.key] = bucketEntries.reduce((total, entry) => total - entry.amountMilliunits, 0);
+      if (dimension === 'category-group') {
+        tooltipItems[group.key] = getCategoryTooltipItems(
+          bucketEntries,
+          snapshot.categoryById,
+          (entry) => -entry.amountMilliunits
+        );
+      }
     }
 
     if (hasOverflow) {
-      let othersTotal = 0;
-      for (const group of overflowGroups) {
-        const groupEntries = entriesByGroup.get(group.key) ?? [];
-        othersTotal += groupEntries
-          .filter((entry) => entry.date >= bucket.from && entry.date <= bucket.to)
-          .reduce((total, entry) => total - entry.amountMilliunits, 0);
+      const bucketEntries = overflowGroups.flatMap((group) =>
+        (entriesByGroup.get(group.key) ?? []).filter(
+          (entry) => entry.date >= bucket.from && entry.date <= bucket.to
+        )
+      );
+      values['__others__'] = bucketEntries.reduce(
+        (total, entry) => total - entry.amountMilliunits,
+        0
+      );
+      if (dimension === 'category-group') {
+        tooltipItems['__others__'] = getCategoryTooltipItems(
+          bucketEntries,
+          snapshot.categoryById,
+          (entry) => -entry.amountMilliunits
+        );
       }
-      values['__others__'] = othersTotal;
     }
 
     return {
@@ -257,7 +294,8 @@ function computeSpendingBreakdown(
       label: bucket.label,
       from: bucket.from,
       to: bucket.to,
-      values
+      values,
+      ...(dimension === 'category-group' ? { tooltipItems } : {})
     };
   });
 
