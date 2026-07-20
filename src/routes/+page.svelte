@@ -71,10 +71,10 @@
   >
     <span class="text-lg font-semibold tracking-tight">YNAD</span>
     <div class="flex items-center gap-4 text-sm text-muted-foreground">
-      <a class="hover:text-foreground" href={resolve('/privacy')}>Privacy Policy</a>
+      <a class="hover:text-foreground hover:opacity-50" href={resolve('/privacy')}>Privacy Policy</a>
       <!-- eslint-disable svelte/no-navigation-without-resolve -->
       <a
-        class="inline-flex items-center gap-1.5 hover:text-foreground"
+        class="inline-flex items-center gap-1.5 hover:text-foreground hover:opacity-50"
         href={GITHUB_URL}
         target="_blank"
         rel="noreferrer"
