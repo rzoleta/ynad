@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { patchUserSettings } from '$lib/app/budget-selection';
 
 export const weekStartSchema = z.union([
   z.literal(1),
@@ -18,9 +19,38 @@ export const appSettingsSchema = z.object({
 
 export type AppSettings = z.infer<typeof appSettingsSchema>;
 
-const SETTINGS_KEY = 'ynad.settings';
+let cache: AppSettings | null = null;
 
-export function getLocaleWeekStart(): WeekStart {
+export async function loadAppSettings(): Promise<AppSettings> {
+  try {
+    const response = await fetch('/api/user-data/settings');
+    if (response.ok) {
+      const parsed = appSettingsSchema.safeParse(await response.json());
+      cache = parsed.success ? parsed.data : {};
+    } else {
+      cache = {};
+    }
+  } catch {
+    cache = {};
+  }
+
+  return cache;
+}
+
+export function readSettings(): AppSettings {
+  return cache ?? {};
+}
+
+export function writeSettings(settings: AppSettings) {
+  cache = settings;
+  void patchUserSettings(settings).catch(() => {});
+}
+
+export function getEffectiveWeekStart(settings = readSettings()): WeekStart {
+  return settings.weekStart ?? getLocaleWeekStart();
+}
+
+function getLocaleWeekStart(): WeekStart {
   try {
     const locale = new Intl.Locale(navigator.language) as Intl.Locale & {
       weekInfo?: { firstDay?: number };
@@ -30,22 +60,4 @@ export function getLocaleWeekStart(): WeekStart {
   } catch {
     return 7;
   }
-}
-
-export function readSettings(): AppSettings {
-  if (typeof localStorage === 'undefined') return {};
-
-  const raw = localStorage.getItem(SETTINGS_KEY);
-  if (!raw) return {};
-
-  const parsed = appSettingsSchema.safeParse(JSON.parse(raw));
-  return parsed.success ? parsed.data : {};
-}
-
-export function writeSettings(settings: AppSettings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-}
-
-export function getEffectiveWeekStart(settings = readSettings()): WeekStart {
-  return settings.weekStart ?? getLocaleWeekStart();
 }

@@ -71,7 +71,8 @@
   >
     <span class="text-lg font-semibold tracking-tight">YNAD</span>
     <div class="flex items-center gap-4 text-sm text-muted-foreground">
-      <a class="hover:text-foreground hover:opacity-50" href={resolve('/privacy')}>Privacy Policy</a>
+      <a class="hover:text-foreground hover:opacity-50" href={resolve('/privacy')}>Privacy Policy</a
+      >
       <!-- eslint-disable svelte/no-navigation-without-resolve -->
       <a
         class="inline-flex items-center gap-1.5 hover:text-foreground hover:opacity-50"
@@ -105,10 +106,10 @@
         </div>
         <p
           class="mt-5 max-w-xl text-sm text-muted-foreground"
-          title="YNAD stores nothing on any server."
+          title="YNAD never stores your YNAB financial data."
         >
-          Privacy First — YNAD does not store or log your personal data anywhere. Everything is
-          securely stored on-device in your browser.
+          Privacy First — YNAD stores only your account, YNAB connection, and dashboard
+          configuration. Your YNAB financial data is fetched live and never stored.
         </p>
       </div>
       <img

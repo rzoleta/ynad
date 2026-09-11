@@ -29,8 +29,9 @@
       investment advice.
     </p>
     <p>
-      Use Disconnect YNAB to remove the browser-local token and selected budget for this browser.
-      Dashboard configuration and settings are also browser-local.
+      YNAD stores your account identity, YNAB authorization, and dashboard configuration. YNAB
+      financial data is never stored. To remove stored data, sign out and revoke YNAD's access from
+      your YNAB account settings.
     </p>
   </div>
 </main>

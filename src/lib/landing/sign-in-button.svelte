@@ -1,7 +1,7 @@
 <script lang="ts">
   import { LockKeyhole } from '@lucide/svelte';
   import { track } from '@vercel/analytics';
-  import { startYnabOAuth } from '$lib/ynab/auth';
+  import { signInWithYnab } from '$lib/client/auth-client';
   import { Button, type ButtonVariant } from '$lib/components/ui/button/index.js';
 
   let {
@@ -18,9 +18,9 @@
     track('sign_in');
 
     try {
-      await startYnabOAuth();
+      await signInWithYnab();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Unable to start YNAB OAuth.';
+      error = err instanceof Error ? err.message : 'Unable to start YNAB sign-in.';
     }
   }
 </script>

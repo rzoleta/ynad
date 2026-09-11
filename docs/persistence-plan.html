@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YNAD · Persistence Plan v2 · better-auth</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #000000;
+        --surface: #0a0a0a;
+        --surface-2: #111111;
+        --border: #1c1c1c;
+        --border-strong: #2a2a2a;
+        --text: #ededed;
+        --muted: #8f8f8f;
+        --faint: #5c5c5c;
+        --accent: #7c9cff;
+        --accent-dim: rgba(124, 156, 255, 0.12);
+        --green: #4ade80;
+        --amber: #fbbf24;
+        --mono: 'Geist Mono', ui-monospace, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        background: var(--bg);
+      }
+      body {
+        font-family: 'Geist', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 52rem;
+        margin: 0 auto;
+        padding: 4rem 1.5rem 8rem;
+      }
+
+      header.masthead {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 2.5rem;
+        margin-bottom: 3.5rem;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 1rem;
+      }
+      h1 {
+        font-size: 2.4rem;
+        font-weight: 650;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+      }
+      .subtitle {
+        margin-top: 0.9rem;
+        color: var(--muted);
+        font-size: 1.05rem;
+        max-width: 42rem;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: 1.6rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--faint);
+      }
+      .meta span b {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      section {
+        margin-bottom: 4rem;
+        scroll-margin-top: 2rem;
+      }
+      h2 {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        font-size: 1.15rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin-bottom: 1.4rem;
+      }
+      h2 .num {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--faint);
+        font-weight: 400;
+      }
+      h3 {
+        font-size: 0.92rem;
+        font-weight: 600;
+        margin: 1.8rem 0 0.7rem;
+      }
+      p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      p + p {
+        margin-top: 0.8rem;
+      }
+      strong {
+        color: var(--text);
+        font-weight: 550;
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 0.82em;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        padding: 0.1em 0.4em;
+        border-radius: 5px;
+        color: var(--text);
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.4rem 1.5rem;
+        margin-top: 1rem;
+      }
+      .card-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+      }
+      th {
+        text-align: left;
+        font-weight: 500;
+        color: var(--faint);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 0.6rem 0.9rem;
+        border-bottom: 1px solid var(--border-strong);
+      }
+      td {
+        padding: 0.75rem 0.9rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--muted);
+        vertical-align: top;
+      }
+      td:first-child {
+        color: var(--text);
+        white-space: nowrap;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .today {
+        color: var(--amber);
+      }
+      .after {
+        color: var(--green);
+      }
+
+      pre {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        line-height: 1.7;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem 1.4rem;
+        overflow-x: auto;
+        color: #c8c8c8;
+      }
+      pre .k {
+        color: var(--accent);
+      }
+      pre .c {
+        color: var(--faint);
+        font-style: italic;
+      }
+      pre .s {
+        color: #a5d6a7;
+      }
+
+      ul.flow {
+        list-style: none;
+        margin-top: 1rem;
+      }
+      ul.flow li {
+        position: relative;
+        padding: 0 0 1.4rem 2.1rem;
+        color: var(--muted);
+        font-size: 0.93rem;
+      }
+      ul.flow li::before {
+        content: '';
+        position: absolute;
+        left: 7px;
+        top: 0.55rem;
+        bottom: -0.1rem;
+        width: 1px;
+        background: var(--border-strong);
+      }
+      ul.flow li:last-child::before {
+        display: none;
+      }
+      ul.flow li::after {
+        content: '';
+        position: absolute;
+        left: 3px;
+        top: 0.42rem;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 1.5px solid var(--accent);
+      }
+      ul.flow li b {
+        color: var(--text);
+        font-weight: 550;
+        display: block;
+      }
+
+      .pill {
+        display: inline-block;
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.06em;
+        padding: 0.22rem 0.6rem;
+        border-radius: 99px;
+        border: 1px solid var(--border-strong);
+        color: var(--muted);
+      }
+      .pill.accent {
+        border-color: rgba(124, 156, 255, 0.4);
+        color: var(--accent);
+        background: var(--accent-dim);
+      }
+      .pill.green {
+        border-color: rgba(74, 222, 128, 0.4);
+        color: var(--green);
+        background: rgba(74, 222, 128, 0.08);
+      }
+
+      .decision {
+        border-color: var(--border-strong);
+      }
+      .decision .rec {
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--green);
+        margin-bottom: 0.4rem;
+        display: block;
+      }
+      .decision .rec.gray {
+        color: var(--faint);
+      }
+      .opts {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+      .opt {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.1rem 1.25rem;
+        background: var(--bg);
+      }
+      .opt.recommended {
+        border-color: rgba(124, 156, 255, 0.35);
+        background: rgba(124, 156, 255, 0.04);
+      }
+      .opt h4 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      .opt p {
+        font-size: 0.87rem;
+      }
+      .opt .tradeoff {
+        margin-top: 0.6rem;
+        font-size: 0.82rem;
+        color: var(--faint);
+      }
+
+      .arch {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 0;
+        align-items: stretch;
+        margin-top: 1rem;
+      }
+      .arch .side {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.2rem 1.4rem;
+        background: var(--surface);
+      }
+      .arch .side h5 {
+        font-size: 0.72rem;
+        font-family: var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--faint);
+        margin-bottom: 0.9rem;
+        font-weight: 500;
+      }
+      .arch .side ul {
+        list-style: none;
+      }
+      .arch .side li {
+        padding: 0.45rem 0;
+        font-size: 0.85rem;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+      }
+      .arch .side li:first-child {
+        border-top: none;
+        padding-top: 0;
+      }
+      .arch .side li b {
+        color: var(--text);
+        font-weight: 550;
+      }
+      .arch .mid {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 0 1.2rem;
+        gap: 0.8rem;
+      }
+      .arch .mid .arrow {
+        font-family: var(--mono);
+        color: var(--accent);
+        font-size: 0.75rem;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+      }
+      .arch .mid .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        opacity: 0.6;
+      }
+      @media (max-width: 40rem) {
+        .arch {
+          grid-template-columns: 1fr;
+        }
+        .arch .mid {
+          flex-direction: row;
+          padding: 0.8rem 0;
+        }
+        .arch .mid .arrow {
+          writing-mode: horizontal-tb;
+          transform: none;
+        }
+      }
+
+      footer.note {
+        border-top: 1px solid var(--border);
+        padding-top: 2rem;
+        color: var(--faint);
+        font-size: 0.85rem;
+        font-family: var(--mono);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="masthead">
+        <div class="eyebrow">Plan v2 · better-auth · For review · No code written yet</div>
+        <h1>Persisting users &amp; dashboards</h1>
+        <p class="subtitle">
+          better-auth + Drizzle + Neon Postgres. YNAB OAuth becomes a server-side sign-in provider —
+          which means your YNAB connection itself finally persists across devices.
+        </p>
+        <div class="meta">
+          <span><b>Auth</b>&nbsp; better-auth (drizzle adapter)</span>
+          <span><b>DB</b>&nbsp; Neon Postgres</span>
+          <span><b>Hosting</b>&nbsp; Vercel (unchanged)</span>
+        </div>
+      </header>
+
+      <!-- ======================= 1. THE UPGRADE ======================= -->
+      <section>
+        <h2><span class="num">01</span> The unlock better-auth gives us</h2>
+        <div class="card">
+          <p style="margin: 0">
+            <strong style="color: var(--green)">Key discovery:</strong> YNAB supports the
+            <strong>Authorization Code Grant</strong> — a server-side OAuth flow with a client
+            secret and <strong>refresh tokens</strong> (access tokens expire every 2&nbsp;hours, but
+            refresh silently). Your <code>.env</code> already contains a YNAB client secret.
+            better-auth's
+            <a href="https://www.better-auth.com/docs/plugins/generic-oauth"
+              >generic OAuth plugin</a
+            >
+            can register YNAB as a first-class social provider using this flow.
+          </p>
+        </div>
+        <p style="margin-top: 1.2rem">
+          This collapses "sign in" and "connect YNAB" into <strong>one flow</strong>: the existing
+          "Sign in with YNAB" button keeps working — but now it creates a real account and links
+          YNAB in a single redirect. better-auth stores the YNAB access + refresh tokens in its
+          <code>account</code> table, the browser never sees them, and tokens refresh automatically
+          server-side forever. The current implicit flow (token in URL fragment, localStorage,
+          re-auth every session) gets deleted entirely.
+        </p>
+        <div class="card" style="padding: 0">
+          <table>
+            <tr>
+              <th>Data</th>
+              <th>Today</th>
+              <th>After</th>
+            </tr>
+            <tr>
+              <td>Identity / sign-in</td>
+              <td class="today">None — YNAB token ≈ identity</td>
+              <td class="after">better-auth <code>user</code> + httpOnly session cookie</td>
+            </tr>
+            <tr>
+              <td>YNAB access token</td>
+              <td class="today">localStorage, implicit flow, 2h expiry, per-device</td>
+              <td class="after">Server-side in <code>account</code> table, auto-refreshing</td>
+            </tr>
+            <tr>
+              <td>YNAB API calls</td>
+              <td class="today">Browser → YNAB directly</td>
+              <td class="after">Server → YNAB via proxy endpoints</td>
+            </tr>
+            <tr>
+              <td>Dashboard + charts</td>
+              <td class="today">localStorage</td>
+              <td class="after">Postgres</td>
+            </tr>
+            <tr>
+              <td>Settings, selected budget</td>
+              <td class="today">localStorage</td>
+              <td class="after">Postgres</td>
+            </tr>
+            <tr>
+              <td>YNAB transactions</td>
+              <td>Fetched per session, never stored</td>
+              <td>Unchanged — fetched, computed, discarded</td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- ======================= 2. ARCHITECTURE ======================= -->
+      <section>
+        <h2><span class="num">02</span> New architecture</h2>
+        <div class="arch">
+          <div class="side">
+            <h5>Browser</h5>
+            <ul>
+              <li><b>Session cookie</b> — the only credential the client ever holds</li>
+              <li><b>Charts UI</b> — unchanged: compute, layout, dnd</li>
+              <li><b>Zero YNAB tokens</b> — implicit flow code deleted</li>
+            </ul>
+          </div>
+          <div class="mid">
+            <span class="arrow">https · json</span>
+            <span class="dot"></span>
+            <span class="arrow">https · json</span>
+          </div>
+          <div class="side">
+            <h5>SvelteKit server (Vercel)</h5>
+            <ul>
+              <li><b>/api/auth/*</b> — better-auth handler</li>
+              <li><b>/api/ynab/*</b> — proxies YNAB, auto-refreshes tokens</li>
+              <li><b>/api/user-data/*</b> — dashboard CRUD</li>
+            </ul>
+          </div>
+        </div>
+        <div class="arch" style="margin-top: 1rem">
+          <div class="side" style="grid-column: 1 / -1">
+            <h5>Neon Postgres</h5>
+            <ul>
+              <li>
+                <b>better-auth tables</b> — <code>user</code>, <code>session</code>,
+                <code>account</code> (holds YNAB refresh tokens), <code>verification</code>
+              </li>
+              <li>
+                <b>ynad tables</b> — <code>dashboards</code> (charts + settings per user &amp;
+                budget)
+              </li>
+              <li><b>Never stored:</b> YNAB transactions, accounts, categories, payees</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 3. SCHEMA ======================= -->
+      <section>
+        <h2><span class="num">03</span> Schema</h2>
+        <p>
+          better-auth generates its own Drizzle schema via its CLI (<code
+            >npx @better-auth/cli generate</code
+          >) — four core tables. We add exactly one table of our own.
+        </p>
+        <pre>
+<span class="c">── generated by better-auth CLI, drizzle adapter (provider: "pg") ──</span>
+<span class="k">user</span>           id (text pk) · name · email (unique, nullable) · emailVerified
+               image · createdAt · updatedAt
+               <span class="c">// YNAB's /v1/user exposes only an id — email/name stay null</span>
+
+<span class="k">session</span>        id (text pk) · userId (fk) · token (unique) · expiresAt · ip · userAgent …
+
+<span class="k">account</span>        id (text pk) · userId (fk) · providerId · accountId (YNAB user id)
+               accessToken · refreshToken · accessTokenExpiresAt · scope …
+               <span class="c">// ← YNAB tokens live here; server refreshes them silently</span>
+
+<span class="k">verification</span>   id · identifier · value · expiresAt …      <span class="c">// OAuth state / PKCE</span>
+
+<span class="c">── ours ──</span>
+<span class="k">dashboards</span>     id (uuid pk) · userId (fk → user) · budgetId (text)
+               charts (jsonb)      <span class="c">// ChartConfig[] — existing zod schema reused</span>
+               settings (jsonb)    <span class="c">// { weekStart } — future home for preferences</span>
+               createdAt · updatedAt
+               <span class="c">// unique(userId, budgetId)</span>
+</pre>
+        <p>
+          Charts stay JSONB because the app treats the dashboard as an atomic document
+          (drag-reorder, bulk normalize, one Zod schema) and never queries individual charts. The
+          existing <code>chartConfigSchema</code> (src/lib/app/chart-config.ts:63) remains the
+          single source of truth and re-validates server-side on every write.
+        </p>
+      </section>
+
+      <!-- ======================= 4. AUTH FLOW ======================= -->
+      <section>
+        <h2><span class="num">04</span> YNAB as a better-auth social provider</h2>
+        <pre>
+<span class="c">// src/lib/server/auth.ts</span>
+betterAuth({
+  database: drizzleAdapter(db, { provider: <span class="s">"pg"</span>, schema }),
+  plugins: [genericOAuth({ config: [ynabProvider] }), sveltekitCookies(getRequestEvent)],
+  socialProviders: { /* optional 2nd provider — decision 02 below */ }
+})
+</pre>
+        <ul class="flow">
+          <li>
+            <b>Sign in with YNAB →</b>
+            <code>authClient.signIn.social({ provider: "ynab", callbackURL: "/app" })</code>.
+            Redirects to YNAB with <code>response_type=code</code> +
+            <code>scope=read-only</code> (PKCE on by default, which YNAB supports).
+          </li>
+          <li>
+            <b>Callback →</b> better-auth exchanges the code server-side at
+            <code>app.ynab.com/oauth/token</code> using the client secret, stores access + refresh
+            tokens in <code>account</code>, upserts the <code>user</code> row (identity = YNAB user
+            id from <code>/v1/user</code>), sets the session cookie, redirects to <code>/app</code>.
+          </li>
+          <li>
+            <b>Every request →</b> <code>hooks.server.ts</code> calls
+            <code>auth.api.getSession</code>, populates <code>event.locals</code>; unauthenticated
+            <code>/app</code> traffic redirects to landing.
+          </li>
+          <li>
+            <b>Token refresh →</b> the YNAB proxy checks <code>accessTokenExpiresAt</code>; when
+            stale, exchanges the refresh token (grant_type=<code>refresh_token</code>) — no user
+            interaction, ever.
+          </li>
+          <li>
+            <b>Sign out →</b> <code>authClient.signOut()</code> deletes the session. YNAB
+            authorization is <em>not</em> revoked — next sign-in resumes the same account.
+          </li>
+        </ul>
+        <div class="card">
+          <div class="card-title">One-time YNAB app setting</div>
+          <p style="font-size: 0.88rem">
+            The YNAB OAuth app's redirect URI must add
+            <code>/api/auth/callback/ynab</code> (better-auth's convention). The existing
+            <code>/auth/ynab/callback</code> page and all implicit-flow code
+            (<code>startYnabOAuth</code>, <code>readToken</code>, sessionStorage state dance) get
+            deleted. Also rename the <code>YANB_CLIENT_SECRET</code> typo →
+            <code>YNAB_CLIENT_SECRET</code>.
+          </p>
+        </div>
+      </section>
+
+      <!-- ======================= 5. SERVER SURFACE ======================= -->
+      <section>
+        <h2><span class="num">05</span> New server surface</h2>
+        <p>
+          Everything the client calls is session-guarded JSON. YNAB data passes through but is never
+          persisted.
+        </p>
+        <pre>
+POST   /api/auth/*                  <span class="c">better-auth handler (mounted in hooks.server.ts)</span>
+
+GET    /api/ynab/budgets            <span class="c">→ BudgetEntity[]          (replaces client-side ynabFetch)</span>
+GET    /api/ynab/snapshot?budgetId= <span class="c">→ NormalizedBudgetData   (replaces fetchNormalizedBudgetSnapshot)</span>
+
+GET    /api/user-data/dashboard?budgetId=   <span class="c">→ { charts, settings } | 404</span>
+PUT    /api/user-data/dashboard?budgetId=   <span class="c">← zod-validated upsert</span>
+PATCH  /api/user-data/settings              <span class="c">← { weekStart }</span>
+</pre>
+        <h3>Client flow after the swap</h3>
+        <ul class="flow">
+          <li>
+            <b>Load /app →</b> layout server-load resolves session + linked YNAB account. Dashboard
+            loads from Postgres; YNAB snapshot loads from the proxy. If no YNAB account is linked
+            (possible if a second sign-in provider is added later), show the existing connect panel.
+          </li>
+          <li>
+            <b>Every edit →</b> existing <code>readDashboard</code>/<code>writeDashboard</code> call
+            sites swap to a new <code>dashboard-repo.ts</code> with the same API — debounced
+            (≈500ms) PUT, optimistic UI. <code>app-state.ts</code>,
+            <code>local-user-data.ts</code> and all token plumbing deleted.
+          </li>
+          <li>
+            <b>Budget switch →</b> fetches that budget's dashboard; svelte-query caching (already in
+            place) handles it.
+          </li>
+          <li>
+            <b>New device →</b> sign in with YNAB → same user, dashboards/settings appear, YNAB
+            connection live via stored refresh token. Zero re-setup. This is the whole point.
+          </li>
+        </ul>
+      </section>
+
+      <!-- ======================= 6. DECISIONS ======================= -->
+      <section>
+        <h2><span class="num">06</span> Decisions for you</h2>
+        <div class="opts">
+          <div class="opt decision">
+            <span class="rec">Needs your call</span>
+            <h4>1. Sign-in providers — YNAB only?</h4>
+            <p>
+              <strong>YNAB-only (recommended):</strong> one button, one flow, identity = YNAB. Every
+              YNAD user is a YNAB user by construction.
+            </p>
+            <p>
+              <strong>Add GitHub/Google alongside:</strong> accounts independent of YNAB; they'd get
+              an explicit "Connect YNAB" step (the old connect panel reborn as a settings action,
+              since linking becomes <code>authClient.linkSocial</code>). More surface, but
+              future-proof if YNAD ever supports other data sources.
+            </p>
+          </div>
+          <div class="opt decision">
+            <span class="rec">Needs your call</span>
+            <h4>2. First-login migration of localStorage data?</h4>
+            <p>
+              <strong>Recommended:</strong> on first authenticated load, if the server dashboard for
+              the selected budget is empty and the local one isn't, upload it once, then clear local
+              keys. Your current setup carries over automatically.
+            </p>
+            <p>
+              <strong>Alternative:</strong> server is immediately the only truth; you rebuild your
+              dashboard once. Cleaner code, one-time pain.
+            </p>
+          </div>
+          <div class="opt decision">
+            <span class="rec">Needs your call</span>
+            <h4>3. Require sign-in for /app?</h4>
+            <p>
+              <strong>Recommended:</strong> yes — <code>/app</code> redirects unauthenticated
+              visitors to the landing page. With server-side dashboards there's little meaning to a
+              signed-out dashboard, and it removes the localStorage fallback code path entirely.
+            </p>
+            <p>
+              <strong>Alternative:</strong> keep a signed-out guest mode backed by localStorage;
+              adds a merge story and a second code path to maintain.
+            </p>
+          </div>
+          <div class="opt decision">
+            <span class="rec gray">Assumed — say if you disagree</span>
+            <h4>4. YNAB calls move fully server-side</h4>
+            <p>
+              Required by the code-flow decision (only the server holds the token). Client-side
+              <code>ynabFetch</code>/<code>client.ts</code> gets replaced by the proxy endpoints.
+              Rate-limit handling (429 pause UX) moves into the proxy and is relayed to the client.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 7. MIGRATION & INFRA ======================= -->
+      <section>
+        <h2><span class="num">07</span> Infra, migration, rollout</h2>
+        <div class="card">
+          <div class="card-title">Packages &amp; env</div>
+          <p style="font-size: 0.88rem">
+            Adds <code>better-auth</code> and <code>drizzle-orm</code> + <code>drizzle-kit</code> +
+            a pg driver (<code>@neondatabase/serverless</code> or plain <code>postgres</code> — Neon
+            speaks standard Postgres from Vercel). Env: <code>DATABASE_URL</code> (already set, dev
+            &amp; prod), <code>BETTER_AUTH_SECRET</code>, <code>BETTER_AUTH_URL</code>,
+            <code>YNAB_CLIENT_ID</code> (currently <code>PUBLIC_…</code>, becomes server-only),
+            <code>YNAB_CLIENT_SECRET</code> (already present, fix typo).
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">Migrations</div>
+          <p style="font-size: 0.88rem">
+            Better-auth CLI generates its four tables; <code>drizzle-kit generate</code> +
+            <code>migrate</code> applies everything against the Neon URL. No existing DB data to
+            migrate — the Neon instance is empty.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">Your own first login</div>
+          <p style="font-size: 0.88rem">
+            Sign in with YNAB → new account row → empty server dashboard → one-time localStorage
+            upload (decision 2) → done. Every device after that: just sign in.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">Privacy &amp; landing copy</div>
+          <p style="font-size: 0.88rem">
+            "Stores nothing on any server" (src/routes/+page.svelte:108) and the settings-page copy
+            get rewritten: we store your account identity, YNAB authorization, and dashboard
+            configuration — never YNAB financial data. Privacy page and Terms get a matching pass.
+            <code>terms/+page.svelte</code> and <code>privacy/+page.svelte</code> exist already.
+          </p>
+        </div>
+      </section>
+
+      <!-- ======================= 8. ORDER ======================= -->
+      <section>
+        <h2><span class="num">08</span> Implementation order</h2>
+        <ul class="flow">
+          <li>
+            <b>1. Foundation →</b> install deps, drizzle config, better-auth instance +
+            CLI-generated schema, migration to Neon. No app behavior changes.
+          </li>
+          <li>
+            <b>2. Auth wiring →</b> hooks.server.ts (<code>svelteKitHandler</code> + session into
+            locals), generic OAuth YNAB provider, sign-in button → <code>signIn.social</code>, route
+            guard for /app. Implicit-flow code deleted.
+          </li>
+          <li>
+            <b>3. YNAB proxy →</b> /api/ynab endpoints with token refresh + rate-limit relay; point
+            svelte-query queries at them; delete client-side YNAB token machinery.
+          </li>
+          <li>
+            <b>4. Dashboards API + repo →</b> GET/PUT with zod validation; swap
+            <code>dashboard-storage.ts</code> internals to the server repo behind the same
+            interface.
+          </li>
+          <li>
+            <b>5. One-time migration + settings sync →</b> first-login upload,
+            weekStart/selected-budget persistence.
+          </li>
+          <li>
+            <b>6. Copy &amp; cleanup →</b> privacy/terms/landing text, delete dead local-auth code,
+            verify new-device flow end to end.
+          </li>
+        </ul>
+      </section>
+
+      <footer class="note">
+        Decisions 1–3 in section 06 block code. Everything else proceeds as written.
+      </footer>
+    </div>
+  </body>
+</html>

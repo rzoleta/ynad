@@ -12,11 +12,9 @@
     formatRateLimitPause,
     getRateLimitPauseUntil,
     isRateLimitPauseActive,
-    readYnabConnectionState,
-    shouldRetryYnabQuery,
-    type YnabConnectionState
+    shouldRetryYnabQuery
   } from '$lib/app/app-state';
-  import { fetchBudgetSelectionState, readSelectedBudgetId } from '$lib/app/budget-selection';
+  import { fetchBudgetSelectionState } from '$lib/app/budget-selection';
   import {
     createDefaultChart,
     isChartPreviewable,
@@ -24,9 +22,14 @@
     type ChartConfig,
     type ChartType
   } from '$lib/app/chart-config';
-  import { cloneDashboardChart, readDashboard, writeDashboard } from '$lib/app/dashboard-storage';
+  import {
+    cloneDashboardChart,
+    fetchDashboard,
+    scheduleDashboardWrite
+  } from '$lib/app/dashboard-repo';
   import { getEffectiveWeekStart } from '$lib/app/settings';
   import { computeChart, type ChartResult } from '$lib/charts/compute';
+  import { signInWithYnab } from '$lib/client/auth-client';
   import ChartBuilderSheet from '$lib/components/chart-builder/chart-builder-sheet.svelte';
   import ChartCard from '$lib/components/dashboard/chart-card.svelte';
   import DashboardToolbar from '$lib/components/dashboard/dashboard-toolbar.svelte';
@@ -37,12 +40,9 @@
   import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
   import { fetchNormalizedBudgetSnapshot } from '$lib/ynab/snapshot';
   import { getYnabErrorCode, getYnabErrorMessage } from '$lib/ynab/errors';
-  import { startYnabOAuth } from '$lib/ynab/auth';
   import type { NormalizedBudgetData } from '$lib/domain/types';
 
-  let token = $state<string | null>(null);
   let budgetId = $state<string | null>(null);
-  let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
   let charts = $state<ChartConfig[]>([]);
   let editorOpen = $state(false);
   let editingChart = $state<ChartConfig | null>(null);
@@ -54,41 +54,46 @@
 
   const reorderFlipDurationMs = 180;
 
-  const dashboardSubtitle = $derived(
-    connectionStatus === 'connected'
-      ? 'You Need A Dashboard for YNAB'
-      : connectionStatus === 'expired'
-        ? 'Reconnect YNAB to refresh'
-        : 'Connect YNAB to start'
-  );
+  const dashboardSubtitle = 'You Need A Dashboard for YNAB';
 
   const budgetSelectionQuery = createQuery(() => ({
-    queryKey: ['ynab', 'budget-selection', token],
-    queryFn: async () => {
-      if (!token) return null;
-      return fetchBudgetSelectionState(token);
-    },
-    enabled: Boolean(token),
+    queryKey: ['ynab', 'budget-selection'],
+    queryFn: fetchBudgetSelectionState,
     retry: shouldRetryYnabQuery,
     refetchOnWindowFocus: () => !isRateLimitPauseActive(rateLimitPauseUntil)
+  }));
+  const dashboardQuery = createQuery(() => ({
+    queryKey: ['user-data', 'dashboard', budgetId],
+    queryFn: () => fetchDashboard(budgetId!),
+    enabled: Boolean(budgetId),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false
   }));
   const snapshotQuery = createQuery<NormalizedBudgetData | null>(() => ({
-    queryKey: ['ynab', 'snapshot', token, budgetId],
-    queryFn: async () => {
-      if (!token || !budgetId) return null;
-      return fetchNormalizedBudgetSnapshot(token, budgetId);
-    },
-    enabled: Boolean(token && budgetId),
+    queryKey: ['ynab', 'snapshot', budgetId],
+    queryFn: () => fetchNormalizedBudgetSnapshot(budgetId!),
+    enabled: Boolean(budgetId),
     retry: shouldRetryYnabQuery,
     refetchOnWindowFocus: () => !isRateLimitPauseActive(rateLimitPauseUntil)
   }));
+
   const lastUpdated = $derived(snapshotQuery.data?.fetchedAt ?? null);
-  const canRefresh = $derived(Boolean(token));
-  const isRefreshing = $derived(budgetSelectionQuery.isFetching || snapshotQuery.isFetching);
+  const isRefreshing = $derived(
+    budgetSelectionQuery.isFetching || snapshotQuery.isFetching || dashboardQuery.isFetching
+  );
   const dashboardError = $derived(snapshotQuery.error ?? budgetSelectionQuery.error ?? null);
   const isSnapshotLoading = $derived(Boolean(isRefreshing));
+  const isDashboardLoading = $derived(Boolean(budgetId) && dashboardQuery.isPending);
+  const reconnectRequired = $derived(
+    dashboardError !== null && getYnabErrorCode(dashboardError) === 'reconnect-required'
+  );
+  const noBudgets = $derived(
+    budgetSelectionQuery.data !== undefined &&
+      !budgetSelectionQuery.error &&
+      (budgetSelectionQuery.data?.selectedBudgetId ?? null) === null
+  );
   const showInitialYnabLoading = $derived(
-    connectionStatus === 'connected' && charts.length === 0 && isSnapshotLoading && !dashboardError
+    !reconnectRequired && !noBudgets && charts.length === 0 && isSnapshotLoading && !dashboardError
   );
   const rateLimitPauseLabel = $derived(formatRateLimitPause(rateLimitPauseUntil, now));
   const dragDisabled = $derived(isSnapshotLoading || charts.length < 2);
@@ -137,12 +142,6 @@
   });
 
   onMount(() => {
-    const connection = readYnabConnectionState();
-    token = connection.accessToken;
-    connectionStatus = connection.status;
-    budgetId = connection.status === 'disconnected' ? null : readSelectedBudgetId();
-    charts = readDashboard(budgetId).charts;
-
     const interval = window.setInterval(() => {
       now = Date.now();
     }, 1000);
@@ -157,7 +156,14 @@
     if (selectedBudgetId === budgetId) return;
 
     budgetId = selectedBudgetId;
-    charts = readDashboard(selectedBudgetId).charts;
+    charts = [];
+  });
+
+  $effect(() => {
+    const data = dashboardQuery.data;
+    if (!data) return;
+
+    charts = data.charts;
   });
 
   $effect(() => {
@@ -179,7 +185,7 @@
 
   function persist(next: ChartConfig[]) {
     charts = next;
-    if (budgetId) writeDashboard(budgetId, { charts: next });
+    if (budgetId) scheduleDashboardWrite(budgetId, { charts: next });
   }
 
   function openNew(type: ChartType) {
@@ -276,14 +282,6 @@
       return { status: 'empty', message: 'Complete the chart settings to preview this chart.' };
     }
 
-    if (!snapshotQuery.data && connectionStatus === 'expired') {
-      return {
-        status: 'error',
-        message: 'Reconnect YNAB to refresh this chart.',
-        code: 'reconnect-required'
-      };
-    }
-
     if (!snapshotQuery.data && dashboardError) {
       return {
         status: 'error',
@@ -332,7 +330,7 @@
   <DashboardToolbar
     subtitle={dashboardSubtitle}
     {lastUpdated}
-    {canRefresh}
+    canRefresh={true}
     {isRefreshing}
     disabled={isSnapshotLoading}
     onRefresh={refresh}
@@ -340,22 +338,28 @@
   />
 
   <section class="mx-auto max-w-7xl px-5 pb-6">
-    {#if connectionStatus === 'disconnected'}
-      <YnabConnectPanel status="disconnected" onConnect={startYnabOAuth} />
-    {:else if connectionStatus === 'expired' && charts.length === 0}
-      <YnabConnectPanel status="expired" onConnect={startYnabOAuth} />
+    {#if reconnectRequired}
+      <YnabConnectPanel onConnect={() => signInWithYnab()} />
+    {:else if noBudgets}
+      <YnabErrorBanner
+        code="budget-unavailable"
+        title="No budget found"
+        message="YNAB did not return any budgets for this account."
+        canRefresh={true}
+        onRefresh={refresh}
+      />
     {:else if dashboardError}
       <YnabErrorBanner
         code={getYnabErrorCode(dashboardError)}
         title={getDashboardErrorTitle(dashboardError)}
         message={getDashboardErrorMessage(dashboardError)}
-        {canRefresh}
+        canRefresh={true}
         onRefresh={refresh}
-        onReconnect={startYnabOAuth}
+        onReconnect={() => signInWithYnab()}
       />
     {/if}
 
-    {#if showInitialYnabLoading}
+    {#if showInitialYnabLoading || isDashboardLoading}
       <LoadingDashboard />
     {:else if charts.length === 0}
       <EmptyDashboard onAddChart={openNew} disabled={isSnapshotLoading} />
@@ -385,7 +389,7 @@
               total={charts.length}
               {compactNumberChart}
               onEdit={openEdit}
-              onReconnect={startYnabOAuth}
+              onReconnect={() => signInWithYnab()}
             />
           </div>
         {/each}

@@ -6,37 +6,40 @@ import {
   type DashboardConfig
 } from './chart-config';
 
-function storageKey(budgetId: string) {
-  return `ynad.dashboard.${budgetId}`;
+const WRITE_DEBOUNCE_MS = 500;
+
+let pendingWrite: ReturnType<typeof setTimeout> | null = null;
+
+export async function fetchDashboard(budgetId: string): Promise<DashboardConfig> {
+  const response = await fetch(`/api/user-data/dashboard?budgetId=${encodeURIComponent(budgetId)}`);
+
+  if (response.status === 404) return createDefaultDashboard();
+  if (!response.ok) throw new Error(`Dashboard request failed (${response.status}).`);
+
+  const body = (await response.json()) as { charts?: unknown };
+  const parsed = dashboardSchema.safeParse({ charts: body.charts });
+  return parsed.success ? normalizeDashboard(parsed.data) : { charts: [] };
 }
 
-export function readDashboard(budgetId: string | null): DashboardConfig {
-  if (!budgetId || typeof localStorage === 'undefined') return { charts: [] };
+export function scheduleDashboardWrite(budgetId: string, dashboard: DashboardConfig) {
+  if (pendingWrite) clearTimeout(pendingWrite);
 
-  const raw = localStorage.getItem(storageKey(budgetId));
-  if (!raw) {
-    const dashboard = createDefaultDashboard();
-    writeDashboard(budgetId, dashboard);
-    return dashboard;
-  }
-
-  try {
-    const parsed = dashboardSchema.safeParse(JSON.parse(raw));
-    return parsed.success ? normalizeDashboard(parsed.data) : { charts: [] };
-  } catch {
-    return { charts: [] };
-  }
+  pendingWrite = setTimeout(() => {
+    pendingWrite = null;
+    void saveDashboard(budgetId, dashboard);
+  }, WRITE_DEBOUNCE_MS);
 }
 
-export function writeDashboard(budgetId: string, dashboard: DashboardConfig) {
-  if (typeof localStorage === 'undefined') return;
-
+export async function saveDashboard(budgetId: string, dashboard: DashboardConfig) {
   const normalized = normalizeDashboard(dashboard);
   const parsed = dashboardSchema.safeParse(normalized);
-  localStorage.setItem(
-    storageKey(budgetId),
-    JSON.stringify(parsed.success ? parsed.data : { charts: [] })
-  );
+  const payload = parsed.success ? parsed.data : { charts: [] };
+
+  await fetch(`/api/user-data/dashboard?budgetId=${encodeURIComponent(budgetId)}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
 }
 
 export function createDefaultDashboard(): DashboardConfig {

@@ -33,7 +33,6 @@
     )}
   >
     {#each options as option (option.value)}
-      {@const Icon = option.icon}
       <button
         type="button"
         class={cn(

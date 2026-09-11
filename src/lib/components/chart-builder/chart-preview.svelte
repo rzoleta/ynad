@@ -25,11 +25,7 @@
   });
 
   const previewClass = $derived(
-    chart.size === 'small'
-      ? 'max-w-[33%]'
-      : chart.size === 'medium'
-        ? 'max-w-[66%]'
-        : 'max-w-full'
+    chart.size === 'small' ? 'max-w-[33%]' : chart.size === 'medium' ? 'max-w-[66%]' : 'max-w-full'
   );
 </script>
 

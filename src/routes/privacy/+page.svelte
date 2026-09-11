@@ -6,7 +6,7 @@
   <title>Privacy · YNAD</title>
   <meta
     name="description"
-    content="Learn how YNAD keeps your YNAB dashboard data private and stores settings locally in your browser."
+    content="Learn how YNAD keeps your YNAB dashboard data private and what is stored on its servers."
   />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://ynad.app/privacy" />
@@ -21,16 +21,18 @@
       and does not modify your budget.
     </p>
     <p>
-      OAuth access tokens, selected budget ID, app settings, and dashboard chart configuration are
-      stored in your browser. YNAD does not operate a backend user account database.
+      YNAD stores your account identity, your YNAB OAuth authorization (including the refresh token,
+      used server-side to fetch data on your behalf), and your dashboard chart configuration and
+      preferences in its database. Your YNAB connection and dashboards follow you across devices.
     </p>
     <p>
-      YNAB financial data is fetched live from the YNAB API and kept in the in-memory app session
-      cache. It is not persisted to localStorage or IndexedDB by YNAD.
+      YNAB financial data — transactions, accounts, categories, and payees — is fetched live from
+      the YNAB API when you open your dashboard and is kept only in the in-memory app session. It is
+      never written to the YNAD database.
     </p>
     <p>
-      The current connection flow stores an expiring browser-local access token. When that token
-      expires or you use Disconnect YNAB, reconnect through YNAB to fetch fresh data again.
+      Signing out ends your session. To revoke YNAD's access to your YNAB data entirely, revoke the
+      YNAD application from your YNAB account settings.
     </p>
   </div>
 </main>

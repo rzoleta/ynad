@@ -4,7 +4,7 @@
 
 YNAD is a free and open-source web app for building beautiful dashboards for your YNAB personal finance data.
 
-Build charts showing *Net Worth*, *Account Balances*, *Spending*, *Income*, etc.
+Build charts showing _Net Worth_, _Account Balances_, _Spending_, _Income_, etc.
 
 YNAD is an independent third-party app. It is not affiliated with, endorsed by, or sponsored by
 YNAB.
@@ -13,14 +13,15 @@ YNAB.
 
 ## Privacy
 
-YNAD is 100% private and local-only. The hosted web app does *NOT* store any user's data on remote servers.
+YNAD uses read-only YNAB API access and never stores your YNAB financial data (transactions,
+accounts, categories, payees). Financial data is fetched live from the YNAB API when you open your
+dashboard and kept only in memory.
 
-Initially it will perform a big fetch of user's full transaction history, and then store this on-device in the browser.
-
-As a result, this does mean users will need to manually re-authenticate from time to time due to the use of an Implicit Grant Flow type in the OAuth flow (since we do not persist your access tokens).
+What YNAD does store in its database: your account identity, your YNAB OAuth authorization (used
+server-side to fetch data on your behalf), and your dashboard chart configuration and preferences —
+so your dashboard follows you across devices.
 
 Check the YNAB docs at: [https://api.ynab.com/#oauth-applications](https://api.ynab.com/#oauth-applications)
-
 
 ## Development
 
@@ -32,7 +33,7 @@ Install dependencies:
 pnpm install
 ```
 
-Create a YNAB OAuth app and set the public client ID:
+Create a Neon Postgres database and a YNAB OAuth app, then:
 
 ```sh
 cp .env.example .env
@@ -41,7 +42,19 @@ cp .env.example .env
 Then edit `.env`:
 
 ```sh
-PUBLIC_YNAB_CLIENT_ID="your-client-id"
+DATABASE_URL="your-neon-connection-string"
+YNAB_CLIENT_ID="your-client-id"
+YNAB_CLIENT_SECRET="your-client-secret"
+BETTER_AUTH_SECRET="random-secret"
+```
+
+Register `http://localhost:5173/api/auth/callback/ynab` (and your production
+`https://your-domain/api/auth/callback/ynab`) as redirect URLs on the YNAB OAuth app.
+
+Apply database migrations:
+
+```sh
+pnpm db:migrate
 ```
 
 Start the dev server:

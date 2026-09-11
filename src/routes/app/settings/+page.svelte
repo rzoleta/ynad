@@ -1,17 +1,13 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { Unplug } from '@lucide/svelte';
+  import { LogOut } from '@lucide/svelte';
   import { createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { setMode, userPrefersMode } from 'mode-watcher';
   import { onMount } from 'svelte';
-  import {
-    readYnabConnectionState,
-    shouldRetryYnabQuery,
-    type YnabConnectionState
-  } from '$lib/app/app-state';
+  import { shouldRetryYnabQuery } from '$lib/app/app-state';
   import { fetchBudgetSelectionState } from '$lib/app/budget-selection';
-  import { clearLocalUserData } from '$lib/app/local-user-data';
+  import { authClient } from '$lib/client/auth-client';
   import * as Select from '$lib/components/ui/select/index.js';
   import BudgetSelector from '$lib/components/settings/budget-selector.svelte';
   import {
@@ -20,14 +16,11 @@
     writeSettings,
     type WeekStart
   } from '$lib/app/settings';
-  import { startYnabOAuth } from '$lib/ynab/auth';
   import { Button } from '$lib/components/ui/button/index.js';
   import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 
-  let token = $state<string | null>(null);
-  let connectionStatus = $state<YnabConnectionState['status']>('disconnected');
   let weekStart = $state<WeekStart>(7);
-  let disconnectDialogOpen = $state(false);
+  let signOutDialogOpen = $state(false);
   const queryClient = useQueryClient();
 
   const weekStartOptions = [
@@ -53,22 +46,15 @@
     weekStartOptions.find((option) => option.value === weekStartValue)?.label ?? 'Sunday'
   );
   const budgetSelectionQuery = createQuery(() => ({
-    queryKey: ['ynab', 'budget-selection', token],
-    queryFn: async () => {
-      if (!token) return null;
-      return fetchBudgetSelectionState(token);
-    },
-    enabled: Boolean(token),
+    queryKey: ['ynab', 'budget-selection'],
+    queryFn: fetchBudgetSelectionState,
     retry: shouldRetryYnabQuery
   }));
   const budgetSelectorLoading = $derived(
-    Boolean(token) && (budgetSelectionQuery.status === 'pending' || budgetSelectionQuery.isFetching)
+    budgetSelectionQuery.status === 'pending' || budgetSelectionQuery.isFetching
   );
 
   onMount(() => {
-    const connection = readYnabConnectionState();
-    connectionStatus = connection.status;
-    token = connection.accessToken;
     weekStart = getEffectiveWeekStart();
   });
 
@@ -77,8 +63,8 @@
     writeSettings({ ...readSettings(), weekStart: value });
   }
 
-  async function disconnect() {
-    clearLocalUserData();
+  async function signOut() {
+    await authClient.signOut();
     queryClient.clear();
     await goto(resolve('/'));
   }
@@ -138,51 +124,41 @@
       </label>
     </div>
 
-    {#if connectionStatus === 'connected'}
-      <div class="rounded-lg border border-border bg-card p-5">
-        <BudgetSelector
-          budgets={budgetSelectionQuery.data?.budgets ?? []}
-          selectedBudgetId={budgetSelectionQuery.data?.selectedBudgetId ?? null}
-          loading={budgetSelectorLoading}
-          error={budgetSelectionQuery.error}
-        />
-      </div>
-    {/if}
+    <div class="rounded-lg border border-border bg-card p-5">
+      <BudgetSelector
+        budgets={budgetSelectionQuery.data?.budgets ?? []}
+        selectedBudgetId={budgetSelectionQuery.data?.selectedBudgetId ?? null}
+        loading={budgetSelectorLoading}
+        error={budgetSelectionQuery.error}
+      />
+    </div>
 
     <div class="rounded-lg border border-border bg-card p-5">
-      <h2 class="text-lg font-semibold">YNAB connection</h2>
+      <h2 class="text-lg font-semibold">Account</h2>
       <p class="mt-1 text-sm text-muted-foreground">
-        {connectionStatus === 'connected'
-          ? 'YNAB is connected in this browser.'
-          : connectionStatus === 'expired'
-            ? 'The YNAB token in this browser has expired.'
-            : 'YNAB is not connected.'}
+        You are signed in with YNAB. Your YNAB connection is stored server-side and follows you
+        across devices.
       </p>
       <div class="mt-4 flex flex-wrap gap-2">
-        {#if connectionStatus === 'expired'}
-          <Button variant="primary" onclick={startYnabOAuth}>Reconnect YNAB</Button>
-        {/if}
-        <AlertDialog.Root bind:open={disconnectDialogOpen}>
+        <AlertDialog.Root bind:open={signOutDialogOpen}>
           <AlertDialog.Trigger>
             {#snippet child({ props })}
               <Button variant="danger" {...props}>
-                <Unplug size={16} />
-                Disconnect YNAB
+                <LogOut size={16} />
+                Sign out
               </Button>
             {/snippet}
           </AlertDialog.Trigger>
           <AlertDialog.Content>
             <AlertDialog.Header>
-              <AlertDialog.Title>Disconnect YNAB?</AlertDialog.Title>
+              <AlertDialog.Title>Sign out?</AlertDialog.Title>
               <AlertDialog.Description>
-                This will disconnect YNAB and delete all local YNAD data stored in this browser.
+                Your dashboards stay saved to your account and will be here when you sign back in.
               </AlertDialog.Description>
             </AlertDialog.Header>
             <AlertDialog.Footer>
               <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-              <AlertDialog.Action variant="danger" onclick={disconnect}>
-                Disconnect
-              </AlertDialog.Action>
+              <AlertDialog.Action variant="danger" onclick={signOut}>Sign out</AlertDialog.Action>
             </AlertDialog.Footer>
           </AlertDialog.Content>
         </AlertDialog.Root>

@@ -17,7 +17,7 @@
     message: string;
     canRefresh: boolean;
     onRefresh: () => void | Promise<void>;
-    onReconnect: () => void | Promise<void>;
+    onReconnect?: () => void | Promise<void>;
   } = $props();
 </script>
 
@@ -35,7 +35,7 @@
   </div>
 
   <div class="flex flex-wrap gap-2">
-    {#if code === 'reconnect-required'}
+    {#if code === 'reconnect-required' && onReconnect}
       <Button variant="primary" onclick={onReconnect}>Reconnect YNAB</Button>
     {:else if code === 'budget-unavailable'}
       <Button variant="secondary" href={resolve('/app/settings')}>Settings</Button>
