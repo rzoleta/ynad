@@ -3,6 +3,7 @@ import { drizzleAdapter } from '@better-auth/drizzle-adapter';
 import { genericOAuth } from 'better-auth/plugins';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
+import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { getDb } from './db';
 import * as schema from './db/schema';
@@ -11,7 +12,10 @@ export const YNAB_PROVIDER_ID = 'ynab';
 
 function createAuth() {
   return betterAuth({
-    baseURL: env.BETTER_AUTH_URL || env.ORIGIN || undefined,
+    baseURL: {
+      allowedHosts: ['localhost:*', '127.0.0.1:*', 'ynad.app', 'www.ynad.app', '*.vercel.app'],
+      protocol: dev ? 'http' : 'https'
+    },
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(getDb(), {
       provider: 'pg',
