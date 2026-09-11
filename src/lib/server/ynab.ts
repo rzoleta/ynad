@@ -19,7 +19,7 @@ const API_BASE = 'https://api.ynab.com/v1';
 export const DEFAULT_BUDGET_ID = 'default';
 const ALL_TRANSACTIONS_SINCE_DATE = '1900-01-01';
 
-export async function getYnabAccessToken(userId: string): Promise<string> {
+export async function getYnabAccessToken(userId: string, headers?: Headers): Promise<string> {
   const accountRows = await getDb()
     .select({ id: account.id })
     .from(account)
@@ -36,10 +36,10 @@ export async function getYnabAccessToken(userId: string): Promise<string> {
   }
 
   try {
-    const response = await getAuth().api.getAccessToken({ body: { accountId, userId } });
+    const response = await getAuth().api.getAccessToken({ body: { accountId, userId }, headers });
     if (response?.accessToken) return response.accessToken;
-  } catch {
-    // fall through to reconnect-required
+  } catch (error) {
+    console.error('[ynab] getAccessToken failed:', error);
   }
 
   throw new YnabClientError({
@@ -49,8 +49,8 @@ export async function getYnabAccessToken(userId: string): Promise<string> {
   });
 }
 
-export async function ynabFetch<T>(userId: string, path: string): Promise<T> {
-  const token = await getYnabAccessToken(userId);
+export async function ynabFetch<T>(userId: string, path: string, headers?: Headers): Promise<T> {
+  const token = await getYnabAccessToken(userId, headers);
 
   let response: Response;
   try {
@@ -103,7 +103,8 @@ export async function ynabFetch<T>(userId: string, path: string): Promise<T> {
 
 export async function fetchRawBudgetSnapshot(
   userId: string,
-  budgetId: string
+  budgetId: string,
+  headers?: Headers
 ): Promise<YnabBudgetSnapshot> {
   const [
     budgetsResponse,
@@ -112,22 +113,26 @@ export async function fetchRawBudgetSnapshot(
     categoriesResponse,
     transactionsResponse
   ] = await Promise.all([
-    ynabFetch<{ data: { budgets: YnabBudget[] } }>(userId, '/budgets'),
+    ynabFetch<{ data: { budgets: YnabBudget[] } }>(userId, '/budgets', headers),
     ynabFetch<{ data: { budget: YnabBudget; server_knowledge?: number } }>(
       userId,
-      `/budgets/${budgetId}`
+      `/budgets/${budgetId}`,
+      headers
     ),
     ynabFetch<{ data: { accounts: YnabAccount[]; server_knowledge?: number } }>(
       userId,
-      `/budgets/${budgetId}/accounts`
+      `/budgets/${budgetId}/accounts`,
+      headers
     ),
     ynabFetch<{ data: { category_groups: YnabCategoryGroup[]; server_knowledge?: number } }>(
       userId,
-      `/budgets/${budgetId}/categories`
+      `/budgets/${budgetId}/categories`,
+      headers
     ),
     ynabFetch<{ data: { transactions: YnabTransaction[]; server_knowledge?: number } }>(
       userId,
-      `/budgets/${budgetId}/transactions?since_date=${ALL_TRANSACTIONS_SINCE_DATE}`
+      `/budgets/${budgetId}/transactions?since_date=${ALL_TRANSACTIONS_SINCE_DATE}`,
+      headers
     )
   ]);
 
@@ -151,8 +156,15 @@ export type BudgetSelection = {
   selectedBudgetId: string | null;
 };
 
-export async function fetchBudgetSelection(userId: string): Promise<BudgetSelection> {
-  const response = await ynabFetch<{ data: { budgets: YnabBudget[] } }>(userId, '/budgets');
+export async function fetchBudgetSelection(
+  userId: string,
+  headers?: Headers
+): Promise<BudgetSelection> {
+  const response = await ynabFetch<{ data: { budgets: YnabBudget[] } }>(
+    userId,
+    '/budgets',
+    headers
+  );
   const budgets: BudgetEntity[] = response.data.budgets
     .map((budget) => ({
       id: budget.id,
@@ -168,7 +180,7 @@ export async function fetchBudgetSelection(userId: string): Promise<BudgetSelect
   let selectedBudgetId = storedIsValid ? storedBudgetId : null;
 
   if (!selectedBudgetId && budgets.length > 0) {
-    selectedBudgetId = await fetchDefaultBudgetId(userId);
+    selectedBudgetId = await fetchDefaultBudgetId(userId, headers);
     if (!selectedBudgetId || !budgets.some((budget) => budget.id === selectedBudgetId)) {
       selectedBudgetId = budgets[0]?.id ?? null;
     }
@@ -196,10 +208,11 @@ export function ynabErrorResponse(error: unknown) {
   return json({ code: 'fetch-error', message: 'YNAB request failed.' }, { status: 502 });
 }
 
-async function fetchDefaultBudgetId(userId: string): Promise<string | null> {
+async function fetchDefaultBudgetId(userId: string, headers?: Headers): Promise<string | null> {
   const response = await ynabFetch<{ data: { budget: YnabBudget } }>(
     userId,
-    `/budgets/${DEFAULT_BUDGET_ID}`
+    `/budgets/${DEFAULT_BUDGET_ID}`,
+    headers
   );
 
   return response.data.budget.id || null;
